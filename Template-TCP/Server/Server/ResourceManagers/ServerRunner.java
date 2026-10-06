@@ -162,30 +162,6 @@ public class ServerRunner implements Runnable {
                             response = Boolean.toString(resRoomRes);
                             break;
 
-                        case "BUNDLE":
-                            // Protocol layout for bundle:
-                            // BUNDLE,customerID,flight1;flight2;flight3,location,carBoolean,roomBoolean
-                            int bundleCustId = Integer.parseInt(tokens[1]);
-
-                            Vector<String> flightList = new Vector<>();
-                            if (!tokens[2].isEmpty()) {
-                                flightList.addAll(Arrays.asList(tokens[2].split(";")));
-                            }
-
-                            String bundleLocation = tokens[3];
-                            boolean bundleCar = Boolean.parseBoolean(tokens[4]);
-                            boolean bundleRoom = Boolean.parseBoolean(tokens[5]);
-
-                            boolean bundleRes = resourceManager.bundle(
-                                    bundleCustId,
-                                    flightList,
-                                    bundleLocation,
-                                    bundleCar,
-                                    bundleRoom
-                            );
-                            response = Boolean.toString(bundleRes);
-                            break;
-
                         case "GET_NAME":
                             response = resourceManager.getName();
                             break;
