@@ -27,12 +27,30 @@ public class TCPResourceManager
 			p_name = args[1];
 		}
 
+		// Switch statement to instantiate the right subclass based on p_name
+		switch (p_name.toLowerCase()) {
+			case "flight":
+				resourceManager = new FlightResourceManager();
+				break;
+			case "car":
+				resourceManager = new CarResourceManager();
+				break;
+			case "room":
+				resourceManager = new RoomResourceManager();
+				break;
+			case "customer":
+				resourceManager = new CustomerResourceManager();
+				break;
+			default:
+				System.out.println("Unknown type '" + p_name + "', defaulting to base ResourceManager.");
+				resourceManager = new ResourceManager(p_name);
+				break;
+		}
+
 		ServerSocket serverSocket = new ServerSocket(port);
 
-		resourceManager = new ResourceManager(p_name);
+		System.out.println("Server running on port " + port + ", waiting for connection");
 
-		System.out.println("Server running on port " + port + ", waiting for " +
-				"connection");
 		while (true) {
 			try {
 				Socket middlewareSocket = serverSocket.accept();
