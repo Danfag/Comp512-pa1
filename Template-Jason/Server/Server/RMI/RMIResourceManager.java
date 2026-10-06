@@ -16,8 +16,9 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-public class RMIResourceManager extends ResourceManager 
+public class RMIResourceManager extends ResourceManager
 {
+
 	private static String s_serverName = "Server";
 	private static String s_rmiPrefix = "group_27_";
 

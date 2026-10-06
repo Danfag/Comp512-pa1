@@ -377,7 +377,7 @@ public abstract class Client
 				System.out.println("-Book Car: " + arguments.elementAt(arguments.size()-2));
 				System.out.println("-Book Room: " + arguments.elementAt(arguments.size()-1));
 
-				int customerID = toInt(arguments.elementAt(1));
+				int customerID = toInt(arguments.elementAt(1));
 				Vector<String> flightNumbers = new Vector<String>();
 				for (int i = 0; i < arguments.size() - 5; ++i)
 				{

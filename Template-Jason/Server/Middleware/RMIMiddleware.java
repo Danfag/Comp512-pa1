@@ -10,12 +10,15 @@ import java.rmi.server.UnicastRemoteObject;
 
 
 public class RMIMiddleware extends Middleware {
+    // For client to connect to middleware
     private static String m_middlewareName = "Middleware";
     private static String m_rmiPrefix = "group_27_";
 
+    // For middleware to connect to server(s)
     private static String s_serverHost = "localhost";
-    private static int s_serverPort = 1099;
     private static String s_serverName = "Server";
+    private static int s_serverPort = 1099;
+
     private static String s_rmiPrefixFlight = "group_27_flight";
     private static String s_rmiPrefixCar = "group_27_car";
     private static String s_rmiPrefixRoom = "group_27_room";
@@ -25,6 +28,10 @@ public class RMIMiddleware extends Middleware {
 
     public static void main(String[] args)
     {
+
+        // NOTE: Does my configuration allow the resource managers to run on
+        // different hosts? if so how is it specified
+
         if (args.length > 0)
         {
             s_serverHost = args[0];

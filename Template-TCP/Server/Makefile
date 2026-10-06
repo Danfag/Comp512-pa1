@@ -1,13 +1,7 @@
-all: compile-server-rmi
+all: compile-server
 
-RMIInterface.jar: Server/Interface/IResourceManager.java
-	@echo "Compiling RMI server interface"
-	javac Server/Interface/IResourceManager.java
-	jar cvf RMIInterface.jar Server/Interface/IResourceManager.class
-
-compile-server-rmi: Server/RMI/*.java Server/Interface/IResourceManager.java Server/Common/*.java
-	javac Server/RMI/*.java Server/Interface/IResourceManager.java Server/Common/*.java
+compile-server:
+	javac Server/Common/*.java Server/Interface/*.java Server/ResourceManagers/*.java Middleware/*.java
 
 clean:
-	rm -f Server/Interface/*.class Server/Common/*.class Server/RMI/*.class
-	rm -f RMIInterface.jar
+	rm -f Server/Common/*.class Server/Interface/*.class Server/ResourceManagers/*.class Middleware/*.class

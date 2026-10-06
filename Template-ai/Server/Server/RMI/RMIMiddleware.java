@@ -1,4 +1,4 @@
-package Server.RMI;
+package Server.ResourceManagers;
 
 import Server.Interface.IResourceManager;
 import Server.Common.Trace;

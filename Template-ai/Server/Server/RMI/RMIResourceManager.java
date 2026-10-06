@@ -3,7 +3,7 @@
 // CSE 593
 // -------------------------------
 
-package Server.RMI;
+package Server.ResourceManagers;
 
 import Server.Interface.*;
 import Server.Common.*;

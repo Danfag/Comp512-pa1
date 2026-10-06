@@ -8,19 +8,8 @@ import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Vector;
 
-// There should be 3 resourceManagers, one for each type of class
-// currently, which layer instantiates the resource manager to be used?
-// its the client, and its instantiated through the connectServer() function
-// call by going through the directory
 
-// since we don't want to change the client, the resource manager which
-// is used in the client will become
-// the middleware we are writing now
-// and the middleware will need to
-// "be given the resource managers on startup"
-// what does this mean exactly?
-
-public class Middleware implements IResourceManager {
+public abstract class Middleware implements IResourceManager {
 
     protected String m_name = "";
 
@@ -130,57 +119,40 @@ public class Middleware implements IResourceManager {
         return roomResourceManager.reserveRoom(customerID, location);
     }
 
-    @Override
-    public synchronized boolean bundle(int customerID, Vector<String> flightNumbers,
-                                       String location, boolean car, boolean room)
+    public boolean bundle(int customerID, Vector<String> flightNumbers,
+                          String location, boolean car, boolean room)
             throws RemoteException {
-        // Customer existence can be checked via the customer resource manager.
-        if (customerResourceManager.queryCustomerInfo(customerID).isEmpty()) {
+
+        if (car && this.queryCars(location) <= 0) {
             return false;
         }
-
-        if (flightNumbers == null || flightNumbers.isEmpty()) {
+        if (room && this.queryRooms(location) <= 0) {
             return false;
         }
-
-        // Count duplicate flight numbers because a bundle may request the same
-        // flight more than once.
-        java.util.Map<Integer, Integer> requestedFlights = new java.util.HashMap<>();
-        try {
-            for (String flight : flightNumbers) {
-                int flightNum = Integer.parseInt(flight);
-                requestedFlights.put(flightNum, requestedFlights.getOrDefault(flightNum, 0) + 1);
-            }
-        } catch (NumberFormatException e) {
-            return false;
-        }
-
-        // Validate the whole bundle before changing any RM state.
-        for (java.util.Map.Entry<Integer, Integer> entry : requestedFlights.entrySet()) {
-            if (flightResourceManager.queryFlight(entry.getKey()) < entry.getValue()) {
+        for (String flightNumber : flightNumbers) {
+            if (this.queryFlight(Integer.parseInt(flightNumber)) <= 0) {
                 return false;
             }
         }
-        if (car && carResourceManager.queryCars(location) < 1) return false;
-        if (room && roomResourceManager.queryRooms(location) < 1) return false;
 
-        // With bundle synchronized at the middleware, another client cannot
-        // interleave a second bundle through this middleware between validation
-        // and reservation.
-        for (String flight : flightNumbers) {
-            if (!flightResourceManager.reserveFlight(customerID, Integer.parseInt(flight))) return false;
+        // All is available: reserve
+        if (car) {
+            if (!this.reserveCar(customerID, location)) return false;
         }
-        if (car && !carResourceManager.reserveCar(customerID, location)) return false;
-        if (room && !roomResourceManager.reserveRoom(customerID, location)) return false;
-        return true;
-    }
+        if (room) {
+            if (!this.reserveRoom(customerID, location)) return false;
+        }
 
-    /**
-     * Convenience for probing the resource manager.
-     *
-     * @return Name
-     */
+        for (String flightNumber : flightNumbers) {
+            if (!this.reserveFlight(customerID,
+                    Integer.parseInt(flightNumber))) return false;
+        }
+        return true;
+    };
+
     public String getName() {
         return this.m_name;
     }
+
+    public abstract void connectServer();
 }
