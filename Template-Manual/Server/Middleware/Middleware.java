@@ -1,185 +1,179 @@
 package Middleware;
 
-import Server.Common.ResourceManager;
 import Server.Interface.*;
 
 import java.rmi.RemoteException;
-import java.security.KeyStore;
-import java.util.HashMap;
 import java.util.Vector;
 
-// There should be 3 resourceManagers, one for each type of class
-// currently, which layer instantiates the resource manager to be used?
-// its the client, and its instantiated through the connectServer() function
-// call by going through the directory
+public abstract class Middleware implements IResourceManager {
+    protected String m_name;
 
-// since we don't want to change the client, the resource manager which
-// is used in the client will become
-// the middleware we are writing now
-// and the middleware will need to
-// "be given the resource managers on startup"
-// what does this mean exactly?
+    // Assigned by super class
+    protected static IResourceManager flightRM = null;
+    protected static IResourceManager carRM = null;
+    protected static IResourceManager roomRM = null;
+    protected static IResourceManager customerRM = null;
+    protected static Orchestrator orchestratorRM = null;
 
-public class Middleware implements IResourceManager {
-
-    protected String m_name = "";
-
-    IResourceManager flightResourceManager = null;
-    IResourceManager carResourceManager = null;
-    IResourceManager roomResourceManager = null;
-    IResourceManager customerResourceManager = null;
-
-
-    public Middleware(String p_name) {
-        this.m_name = p_name;
+    protected Middleware(String m_name) {
+        this.m_name = m_name;
     }
 
+    protected void setOrchestratorRM(Orchestrator orchestratorRM) {
+        Middleware.orchestratorRM = orchestratorRM;
+    }
+
+    private static IResourceManager getFlightRM() {
+        if (flightRM == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the flights server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return Middleware.flightRM;
+    }
+
+    private static IResourceManager getCarRM() {
+        if (carRM == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the cars server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return Middleware.carRM;
+    }
+
+    private static IResourceManager getRoomRM() {
+        if (roomRM == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the rooms server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return Middleware.roomRM;
+    }
+
+    private static IResourceManager getCustomerRM() {
+        if (customerRM == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the customers server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return Middleware.customerRM;
+    }
+
+    private static Orchestrator getOrchestratorRM() {
+        if (orchestratorRM == null) {
+            throw new IllegalStateException("The middleware was not properly " +
+                    "built. The orchestrator RM must be " +
+                    "defined after " +
+                    "instantiation");
+        }
+        return Middleware.orchestratorRM;
+    }
+
+    // Flight RM methods
     public boolean addFlight(int flightNum, int flightSeats, int flightPrice) throws RemoteException {
-        return flightResourceManager.addFlight(flightNum, flightSeats,
+        return getFlightRM().addFlight(flightNum, flightSeats,
                 flightPrice);
-
-    }
-
-    public boolean addCars(String location, int numCars, int price)
-            throws RemoteException {
-        return carResourceManager.addCars(location, numCars, price);
-    }
-
-    public boolean addRooms(String location, int numRooms, int price)
-            throws RemoteException {
-        return roomResourceManager.addRooms(location, numRooms, price);
-    }
-
-    public int newCustomer()
-            throws RemoteException {
-        return customerResourceManager.newCustomer();
-    }
-
-    public boolean newCustomer(int cid)
-            throws RemoteException {
-        return customerResourceManager.newCustomer(cid);
     }
 
     public boolean deleteFlight(int flightNum)
             throws RemoteException {
-        return flightResourceManager.deleteFlight(flightNum);
-    }
-
-    public boolean deleteCars(String location)
-            throws RemoteException {
-        return carResourceManager.deleteCars(location);
-    };
-
-    public boolean deleteRooms(String location)
-            throws RemoteException {
-        return roomResourceManager.deleteRooms(location);
-    };
-
-    public boolean deleteCustomer(int customerID)
-            throws RemoteException {
-        return customerResourceManager.deleteCustomer(customerID);
+        return getFlightRM().deleteFlight(flightNum);
     }
 
     public int queryFlight(int flightNumber)
             throws RemoteException {
-        return flightResourceManager.queryFlight(flightNumber);
+        return getFlightRM().queryFlight(flightNumber);
+    }
+
+    public int queryFlightPrice(int flightNumber)
+            throws RemoteException {
+        return getFlightRM().queryFlightPrice(flightNumber);
+    }
+
+    // Car RM methods
+    public boolean addCars(String location, int numCars, int price)
+            throws RemoteException {
+        return getCarRM().addCars(location, numCars, price);
+    }
+
+    public boolean deleteCars(String location)
+            throws RemoteException {
+        return getCarRM().deleteCars(location);
     }
 
     public int queryCars(String location)
             throws RemoteException {
-        return carResourceManager.queryCars(location);
+        return getCarRM().queryCars(location);
     }
+    public int queryCarsPrice(String location)
+            throws RemoteException {
+        return getCarRM().queryCarsPrice(location);
+    }
+
+    // Room RM methods
+    public boolean addRooms(String location, int numRooms, int price)
+            throws RemoteException {
+        return  getRoomRM().addRooms(location, numRooms, price);
+    }
+
+    public boolean deleteRooms(String location)
+            throws RemoteException {
+        return  getRoomRM().deleteRooms(location);
+    };
 
     public int queryRooms(String location)
             throws RemoteException {
-        return roomResourceManager.queryRooms(location);
+        return  getRoomRM().queryRooms(location);
+    }
+    public int queryRoomsPrice(String location)
+            throws RemoteException {
+        return  getRoomRM().queryRoomsPrice(location);
+    }
+
+    // Customer RM methods
+    public int newCustomer()
+            throws RemoteException {
+        return getCustomerRM().newCustomer();
+    }
+
+    public boolean newCustomer(int cid)
+            throws RemoteException {
+        return getCustomerRM().newCustomer(cid);
+    }
+
+    public boolean deleteCustomer(int customerID)
+            throws RemoteException {
+        return getCustomerRM().deleteCustomer(customerID);
     }
 
     public String queryCustomerInfo(int customerID)
             throws RemoteException {
-        return customerResourceManager.queryCustomerInfo(customerID);
+        return getCustomerRM().queryCustomerInfo(customerID);
     };
 
-    public int queryFlightPrice(int flightNumber)
-            throws RemoteException {
-        return flightResourceManager.queryFlightPrice(flightNumber);
-    }
-
-    public int queryCarsPrice(String location)
-            throws RemoteException {
-        return carResourceManager.queryCarsPrice(location);
-    }
-
-    public int queryRoomsPrice(String location)
-            throws RemoteException {
-        return roomResourceManager.queryRoomsPrice(location);
-    }
-
-    public boolean reserveFlight(int customerID, int flightNumber)
-            throws RemoteException {
-        return flightResourceManager.reserveFlight(customerID, flightNumber);
-    }
-
-    public boolean reserveCar(int customerID, String location)
-            throws RemoteException {
-        return carResourceManager.reserveCar(customerID, location);
-    }
-
-    public boolean reserveRoom(int customerID, String location)
-            throws RemoteException {
-        return roomResourceManager.reserveRoom(customerID, location);
+    // Orchestrator RM methods
+    @Override
+    public boolean reserveFlight(int customerID, int flightNumber) throws RemoteException {
+        return getOrchestratorRM().reserveFlight(customerID, flightNumber);
     }
 
     @Override
-    public synchronized boolean bundle(int customerID, Vector<String> flightNumbers,
-                                       String location, boolean car, boolean room)
-            throws RemoteException {
-        // Customer existence can be checked via the customer resource manager.
-        if (customerResourceManager.queryCustomerInfo(customerID).isEmpty()) {
-            return false;
-        }
-
-        if (flightNumbers == null || flightNumbers.isEmpty()) {
-            return false;
-        }
-
-        // Count duplicate flight numbers because a bundle may request the same
-        // flight more than once.
-        java.util.Map<Integer, Integer> requestedFlights = new java.util.HashMap<>();
-        try {
-            for (String flight : flightNumbers) {
-                int flightNum = Integer.parseInt(flight);
-                requestedFlights.put(flightNum, requestedFlights.getOrDefault(flightNum, 0) + 1);
-            }
-        } catch (NumberFormatException e) {
-            return false;
-        }
-
-        // Validate the whole bundle before changing any RM state.
-        for (java.util.Map.Entry<Integer, Integer> entry : requestedFlights.entrySet()) {
-            if (flightResourceManager.queryFlight(entry.getKey()) < entry.getValue()) {
-                return false;
-            }
-        }
-        if (car && carResourceManager.queryCars(location) < 1) return false;
-        if (room && roomResourceManager.queryRooms(location) < 1) return false;
-
-        // With bundle synchronized at the middleware, another client cannot
-        // interleave a second bundle through this middleware between validation
-        // and reservation.
-        for (String flight : flightNumbers) {
-            if (!flightResourceManager.reserveFlight(customerID, Integer.parseInt(flight))) return false;
-        }
-        if (car && !carResourceManager.reserveCar(customerID, location)) return false;
-        if (room && !roomResourceManager.reserveRoom(customerID, location)) return false;
-        return true;
+    public boolean reserveCar(int customerID, String location) throws RemoteException {
+        return getOrchestratorRM().reserveCar(customerID, location);
     }
 
-    /**
-     * Convenience for probing the resource manager.
-     *
-     * @return Name
-     */
+    @Override
+    public boolean reserveRoom(int customerID, String location) throws RemoteException {
+        return getOrchestratorRM().reserveRoom(customerID, location);
+    }
+
+    @Override
+    public boolean bundle(int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException {
+        return getOrchestratorRM().bundle(customerID, flightNumbers, location,
+                car
+                , room);
+    }
+
     public String getName() {
         return this.m_name;
     }

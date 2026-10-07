@@ -9,14 +9,11 @@ import java.rmi.NotBoundException;
 
 public class RMIClient extends Client
 {
-	// Now its not the server its the middleware
-	private static String s_serverHost = "localhost";
-        // recommended to change port last digits to your group number
-	private static int s_serverPort = 1099;
-	private static String s_serverName = "Middleware";
+	private static String s_serverName = "Server";
 
-	// The client uses this + port to locate the server registry, where is
-	// the server registering its own resource manager?
+	private static String s_serverHost = "localhost";
+	private static int s_serverPort = 1027;
+
 	private static String s_rmiPrefix = "group_27_";
 
 	public static void main(String[] args)
@@ -30,6 +27,10 @@ public class RMIClient extends Client
 			s_serverName = args[1];
 		}
 		if (args.length > 2)
+		{
+			s_serverPort = Integer.parseInt(args[2]);
+		}
+		if (args.length > 3)
 		{
 			System.err.println((char)27 + "[31;1mClient exception: " + (char)27 + "[0mUsage: java client.RMIClient [server_hostname [server_rmiobject]]");
 			System.exit(1);
