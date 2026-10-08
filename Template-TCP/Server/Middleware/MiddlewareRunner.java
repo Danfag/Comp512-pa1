@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Vector;
 
 public class MiddlewareRunner extends Middleware implements Runnable{
+    private static final char RESPONSE_TERMINATOR = '\u001e';
 
     // this could have a middleware instance, and whenever it gets a request
     // it can decode which method it should go to, then call it
@@ -187,8 +188,8 @@ public class MiddlewareRunner extends Middleware implements Runnable{
                 }
 
                 if (command.equals("QUERY_CUSTOMER")) {
-                    to_client.println(finalResponse.length());
                     to_client.print(finalResponse);
+                    to_client.print(RESPONSE_TERMINATOR);
                     to_client.flush();
                 } else {
                     to_client.println(finalResponse);

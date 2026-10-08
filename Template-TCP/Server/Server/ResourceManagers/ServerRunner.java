@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class ServerRunner implements Runnable {
+    private static final char RESPONSE_TERMINATOR = '\u001e';
 
     private IResourceManager resourceManager;
     private Socket socket;
@@ -189,12 +190,13 @@ public class ServerRunner implements Runnable {
                 }
 
                 if (command.equals("QUERY_CUSTOMER")) {
-                    out.println(response.length());
                     out.print(response);
+                    out.print(RESPONSE_TERMINATOR);
                     out.flush();
                 } else {
                     out.println(response);
                 }
+//                }
             }
         } catch (IOException e) {
             System.err.println("Error while reading stream: " + e.getMessage());

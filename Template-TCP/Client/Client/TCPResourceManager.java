@@ -10,6 +10,8 @@ import java.rmi.RemoteException;
 import java.util.Vector;
 
 public class TCPResourceManager implements IResourceManager  {
+    private static final char RESPONSE_TERMINATOR = '\u001e';
+
     Socket socket = null;
     PrintWriter out;
     BufferedReader in;
@@ -176,39 +178,22 @@ public class TCPResourceManager implements IResourceManager  {
         out.println(payload);
 
         try {
-            return readFramedResponse();
+            return readTerminatedResponse();
         } catch (IOException e) {
-            System.err.println("Error occurred while reading response");
-            return "";
+            throw new RemoteException("Error occurred while reading customer response", e);
         }
     }
 
-    private String readFramedResponse() throws IOException {
-        String lengthLine = in.readLine();
-        if (lengthLine == null) {
-            throw new IOException("Connection closed before response length");
-        }
-
-        int length;
-        try {
-            length = Integer.parseInt(lengthLine);
-        } catch (NumberFormatException e) {
-            throw new IOException("Invalid response length: " + lengthLine, e);
-        }
-        if (length < 0) {
-            throw new IOException("Invalid negative response length: " + length);
-        }
-
-        char[] response = new char[length];
-        int offset = 0;
-        while (offset < length) {
-            int count = in.read(response, offset, length - offset);
-            if (count == -1) {
-                throw new IOException("Connection closed before response completed");
+    private String readTerminatedResponse() throws IOException {
+        StringBuilder response = new StringBuilder();
+        int character;
+        while ((character = in.read()) != -1) {
+            if (character == RESPONSE_TERMINATOR) {
+                return response.toString();
             }
-            offset += count;
+            response.append((char) character);
         }
-        return new String(response);
+        throw new IOException("Connection closed before customer response terminator");
     }
 
     public int queryFlightPrice(int flightNumber) throws RemoteException {

@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 
 // Probably dont need to implement all, just need to reroute
 public abstract class Middleware {
+    private static final char RESPONSE_TERMINATOR = '\u001e';
+
     protected String m_name;
 
     protected SocketStreams flightStreams;
@@ -127,38 +129,22 @@ public abstract class Middleware {
     {
         getCustomerStreams().to_resource.println(request);
         if (request.split(",", 2)[0].trim().equalsIgnoreCase("QUERY_CUSTOMER")) {
-            return readFramedResponse(getCustomerStreams().from_resource);
+            return readTerminatedResponse(getCustomerStreams().from_resource);
         }
         return getCustomerStreams().from_resource.readLine();
     }
 
-    private String readFramedResponse(BufferedReader reader) throws IOException
+    private String readTerminatedResponse(BufferedReader reader) throws IOException
     {
-        String lengthLine = reader.readLine();
-        if (lengthLine == null) {
-            throw new IOException("Connection closed before response length");
-        }
-
-        int length;
-        try {
-            length = Integer.parseInt(lengthLine);
-        } catch (NumberFormatException e) {
-            throw new IOException("Invalid response length: " + lengthLine, e);
-        }
-        if (length < 0) {
-            throw new IOException("Invalid negative response length: " + length);
-        }
-
-        char[] response = new char[length];
-        int offset = 0;
-        while (offset < length) {
-            int count = reader.read(response, offset, length - offset);
-            if (count == -1) {
-                throw new IOException("Connection closed before response completed");
+        StringBuilder response = new StringBuilder();
+        int character;
+        while ((character = reader.read()) != -1) {
+            if (character == RESPONSE_TERMINATOR) {
+                return response.toString();
             }
-            offset += count;
+            response.append((char) character);
         }
-        return new String(response);
+        throw new IOException("Connection closed before customer response terminator");
     }
 
     public String customerRedirectionWithSynchro(String request) throws IOException
