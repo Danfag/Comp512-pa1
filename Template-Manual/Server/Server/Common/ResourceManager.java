@@ -53,25 +53,21 @@ public class ResourceManager implements IResourceManager
 	protected boolean deleteItem(String key)
 	{
 		Trace.info("RM::deleteItem(" + key + ") called");
-		ReservableItem curObj = (ReservableItem)readData(key);
-		// Check if there is such an item in the storage
-		if (curObj == null)
-		{
-			Trace.warn("RM::deleteItem(" + key + ") failed--item doesn't exist");
-			return false;
-		}
-		else
-		{
-			if (curObj.getReserved() == 0)
-			{
-				removeData(curObj.getKey());
-				Trace.info("RM::deleteItem(" + key + ") item deleted");
-				return true;
-			}
-			else
-			{
-				Trace.info("RM::deleteItem(" + key + ") item can't be deleted because some customers have reserved it");
+		synchronized (m_data) {
+			ReservableItem curObj = (ReservableItem) readData(key);
+			// Check if there is such an item in the storage
+			if (curObj == null) {
+				Trace.warn("RM::deleteItem(" + key + ") failed--item doesn't exist");
 				return false;
+			} else {
+				if (curObj.getReserved() == 0) {
+					removeData(curObj.getKey());
+					Trace.info("RM::deleteItem(" + key + ") item deleted");
+					return true;
+				} else {
+					Trace.info("RM::deleteItem(" + key + ") item can't be deleted because some customers have reserved it");
+					return false;
+				}
 			}
 		}
 	}
@@ -104,68 +100,27 @@ public class ResourceManager implements IResourceManager
 		return value;        
 	}
 
-	// Reserve an item
-	protected boolean reserveItem(int customerID, String key, String location)
-	{
-		Trace.info("RM::reserveItem(customer=" + customerID + ", " + key + ", " + location + ") called" );        
-		// Read customer object if it exists (and read lock it)
-		Customer customer = (Customer)readData(Customer.getKey(customerID));
-		if (customer == null)
-		{
-			Trace.warn("RM::reserveItem(" + customerID + ", " + key + ", " + location + ")  failed--customer doesn't exist");
-			return false;
-		} 
-
-		// Check if the item is available
-		ReservableItem item = (ReservableItem)readData(key);
-		if (item == null)
-		{
-			Trace.warn("RM::reserveItem(" + customerID + ", " + key + ", " + location + ") failed--item doesn't exist");
-			return false;
-		}
-		else if (item.getCount() == 0)
-		{
-			Trace.warn("RM::reserveItem(" + customerID + ", " + key + ", " + location + ") failed--No more items");
-			return false;
-		}
-		else
-		{            
-			customer.reserve(key, location, item.getPrice());        
-			writeData(customer.getKey(), customer);
-
-			// Decrease the number of available items in the storage
-			item.setCount(item.getCount() - 1);
-			item.setReserved(item.getReserved() + 1);
-			writeData(item.getKey(), item);
-
-			Trace.info("RM::reserveItem(" + customerID + ", " + key + ", " + location + ") succeeded");
-			return true;
-		}        
-	}
-
 	// Create a new flight, or add seats to existing flight
 	// NOTE: if flightPrice <= 0 and the flight already exists, it maintains its current price
 	public boolean addFlight(int flightNum, int flightSeats, int flightPrice) throws RemoteException
 	{
 		Trace.info("RM::addFlight(" + flightNum + ", " + flightSeats + ", $" + flightPrice + ") called");
-		Flight curObj = (Flight)readData(Flight.getKey(flightNum));
-		if (curObj == null)
-		{
-			// Doesn't exist yet, add it
-			Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
-			writeData(newObj.getKey(), newObj);
-			Trace.info("RM::addFlight() created new flight " + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
-		}
-		else
-		{
-			// Add seats to existing flight and update the price if greater than zero
-			curObj.setCount(curObj.getCount() + flightSeats);
-			if (flightPrice > 0)
-			{
-				curObj.setPrice(flightPrice);
+		synchronized (m_data) {
+			Flight curObj = (Flight) readData(Flight.getKey(flightNum));
+			if (curObj == null) {
+				// Doesn't exist yet, add it
+				Flight newObj = new Flight(flightNum, flightSeats, flightPrice);
+				writeData(newObj.getKey(), newObj);
+				Trace.info("RM::addFlight() created new flight " + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
+			} else {
+				// Add seats to existing flight and update the price if greater than zero
+				curObj.setCount(curObj.getCount() + flightSeats);
+				if (flightPrice > 0) {
+					curObj.setPrice(flightPrice);
+				}
+				writeData(curObj.getKey(), curObj);
+				Trace.info("RM::addFlight() modified existing flight " + flightNum + ", seats=" + curObj.getCount() + ", price=$" + flightPrice);
 			}
-			writeData(curObj.getKey(), curObj);
-			Trace.info("RM::addFlight() modified existing flight " + flightNum + ", seats=" + curObj.getCount() + ", price=$" + flightPrice);
 		}
 		return true;
 	}
@@ -175,24 +130,22 @@ public class ResourceManager implements IResourceManager
 	public boolean addCars(String location, int count, int price) throws RemoteException
 	{
 		Trace.info("RM::addCars(" + location + ", " + count + ", $" + price + ") called");
-		Car curObj = (Car)readData(Car.getKey(location));
-		if (curObj == null)
-		{
-			// Car location doesn't exist yet, add it
-			Car newObj = new Car(location, count, price);
-			writeData(newObj.getKey(), newObj);
-			Trace.info("RM::addCars() created new location " + location + ", count=" + count + ", price=$" + price);
-		}
-		else
-		{
-			// Add count to existing car location and update price if greater than zero
-			curObj.setCount(curObj.getCount() + count);
-			if (price > 0)
-			{
-				curObj.setPrice(price);
+		synchronized (m_data) {
+			Car curObj = (Car) readData(Car.getKey(location));
+			if (curObj == null) {
+				// Car location doesn't exist yet, add it
+				Car newObj = new Car(location, count, price);
+				writeData(newObj.getKey(), newObj);
+				Trace.info("RM::addCars() created new location " + location + ", count=" + count + ", price=$" + price);
+			} else {
+				// Add count to existing car location and update price if greater than zero
+				curObj.setCount(curObj.getCount() + count);
+				if (price > 0) {
+					curObj.setPrice(price);
+				}
+				writeData(curObj.getKey(), curObj);
+				Trace.info("RM::addCars() modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 			}
-			writeData(curObj.getKey(), curObj);
-			Trace.info("RM::addCars() modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 		}
 		return true;
 	}
@@ -202,22 +155,22 @@ public class ResourceManager implements IResourceManager
 	public boolean addRooms(String location, int count, int price) throws RemoteException
 	{
 		Trace.info("RM::addRooms(" + location + ", " + count + ", $" + price + ") called");
-		Room curObj = (Room)readData(Room.getKey(location));
-		if (curObj == null)
-		{
-			// Room location doesn't exist yet, add it
-			Room newObj = new Room(location, count, price);
-			writeData(newObj.getKey(), newObj);
-			Trace.info("RM::addRooms() created new room location " + location + ", count=" + count + ", price=$" + price);
-		} else {
-			// Add count to existing object and update price if greater than zero
-			curObj.setCount(curObj.getCount() + count);
-			if (price > 0)
-			{
-				curObj.setPrice(price);
+		synchronized (m_data) {
+			Room curObj = (Room) readData(Room.getKey(location));
+			if (curObj == null) {
+				// Room location doesn't exist yet, add it
+				Room newObj = new Room(location, count, price);
+				writeData(newObj.getKey(), newObj);
+				Trace.info("RM::addRooms() created new room location " + location + ", count=" + count + ", price=$" + price);
+			} else {
+				// Add count to existing object and update price if greater than zero
+				curObj.setCount(curObj.getCount() + count);
+				if (price > 0) {
+					curObj.setPrice(price);
+				}
+				writeData(curObj.getKey(), curObj);
+				Trace.info("RM::addRooms() modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 			}
-			writeData(curObj.getKey(), curObj);
-			Trace.info("RM::addRooms() modified existing location " + location + ", count=" + curObj.getCount() + ", price=$" + price);
 		}
 		return true;
 	}
@@ -309,68 +262,122 @@ public class ResourceManager implements IResourceManager
 	public boolean newCustomer(int customerID) throws RemoteException
 	{
 		Trace.info("RM::newCustomer(" + customerID + ") called");
-		Customer customer = (Customer)readData(Customer.getKey(customerID));
-		if (customer == null)
-		{
-			customer = new Customer(customerID);
-			writeData(customer.getKey(), customer);
-			Trace.info("RM::newCustomer(" + customerID + ") created a new customer");
-			return true;
+		synchronized (m_data) {
+			Customer customer = (Customer) readData(Customer.getKey(customerID));
+			if (customer == null) {
+				customer = new Customer(customerID);
+				writeData(customer.getKey(), customer);
+				Trace.info("RM::newCustomer(" + customerID + ") created a new customer");
+				return true;
+			}
 		}
-		else
-		{
-			Trace.info("INFO: RM::newCustomer(" + customerID + ") failed--customer already exists");
-			return false;
-		}
+		Trace.info("INFO: RM::newCustomer(" + customerID + ") failed--customer already exists");
+		return false;
 	}
 
 	public boolean deleteCustomer(int customerID) throws RemoteException
 	{
 		Trace.info("RM::deleteCustomer(" + customerID + ") called");
-		Customer customer = (Customer)readData(Customer.getKey(customerID));
-		if (customer == null)
-		{
-			Trace.warn("RM::deleteCustomer(" + customerID + ") failed--customer doesn't exist");
-			return false;
-		}
-		else
-		{            
-			// Increase the reserved numbers of all reservable items which the customer reserved. 
- 			RMHashMap reservations = customer.getReservations();
-			for (String reservedKey : reservations.keySet())
-			{        
-				ReservedItem reserveditem = customer.getReservedItem(reservedKey);
-				Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " " +  reserveditem.getCount() +  " times");
-				ReservableItem item  = (ReservableItem)readData(reserveditem.getKey());
-				Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " which is reserved " +  item.getReserved() +  " times and is still available " + item.getCount() + " times");
-				item.setReserved(item.getReserved() - reserveditem.getCount());
-				item.setCount(item.getCount() + reserveditem.getCount());
-				writeData(item.getKey(), item);
-			}
+		synchronized (m_data) {
+			Customer customer = (Customer) readData(Customer.getKey(customerID));
+			if (customer == null) {
+				Trace.warn("RM::deleteCustomer(" + customerID + ") failed--customer doesn't exist");
+				return false;
+			} else {
+				// Increase the reserved numbers of all reservable items which the customer reserved.
+				RMHashMap reservations = customer.getReservations();
+				for (String reservedKey : reservations.keySet()) {
+					ReservedItem reserveditem = customer.getReservedItem(reservedKey);
+					Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " " + reserveditem.getCount() + " times");
+					ReservableItem item = (ReservableItem) readData(reserveditem.getKey());
+					Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " which is reserved " + item.getReserved() + " times and is still available " + item.getCount() + " times");
+					item.setReserved(item.getReserved() - reserveditem.getCount());
+					item.setCount(item.getCount() + reserveditem.getCount());
+					writeData(item.getKey(), item);
+				}
 
-			// Remove the customer from the storage
-			removeData(customer.getKey());
-			Trace.info("RM::deleteCustomer(" + customerID + ") succeeded");
-			return true;
+				// Remove the customer from the storage
+				removeData(customer.getKey());
+				Trace.info("RM::deleteCustomer(" + customerID + ") succeeded");
+				return true;
+			}
+		}
+	}
+
+	// We can override the reserveX method in the customer RM so that
+	// it just does the thing on the customer
+	// and in the rest, each one has the implementation so that it just
+	// updates that resource
+	protected boolean reserveResource(String key) {
+		synchronized (m_data) {
+			ReservableItem item = (ReservableItem) readData(key);
+			if (item == null) {
+				return false;
+			} else if (item.getCount() == 0) {
+				return false;
+			} else {
+				// Decrease the number of available items in the storage
+				item.setCount(item.getCount() - 1);
+				item.setReserved(item.getReserved() + 1);
+				writeData(item.getKey(), item);
+
+				return true;
+			}
 		}
 	}
 
 	// Adds flight reservation to this customer
 	public boolean reserveFlight(int customerID, int flightNum) throws RemoteException
 	{
-		return reserveItem(customerID, Flight.getKey(flightNum), String.valueOf(flightNum));
+		return reserveResource(Flight.getKey(flightNum));
 	}
 
 	// Adds car reservation to this customer
 	public boolean reserveCar(int customerID, String location) throws RemoteException
 	{
-		return reserveItem(customerID, Car.getKey(location), location);
+		return reserveResource(Car.getKey(location));
 	}
 
 	// Adds room reservation to this customer
     public boolean reserveRoom(int customerID, String location) throws RemoteException
 	{
-		return reserveItem(customerID, Room.getKey(location), location);
+		return reserveResource(Room.getKey(location));
+	}
+
+	private boolean addReservationToCustomer(int customerID, String key,
+											 String location,
+											 int itemPrice) throws RemoteException {
+		synchronized (m_data) {
+			Customer customer =
+					(Customer) readData(Customer.getKey(customerID));
+			if (customer == null) {
+				throw new RemoteException("This should not happen, we checked that" +
+						"customer exists in middleware already");
+			}
+
+			customer.reserve(key, location, itemPrice);
+			writeData(customer.getKey(), customer);
+			return true;
+		}
+	}
+
+	public boolean reserveFlightForCustomer(int customerID, int flightNum,
+								 int flightPrice) throws RemoteException {
+		return addReservationToCustomer(customerID, Flight.getKey(flightNum),
+				String.valueOf(flightNum), flightPrice);
+
+	}
+
+	public boolean reserveCarForCustomer(int customerID, String location,
+								int carPrice) throws RemoteException {
+		return addReservationToCustomer(customerID,
+				Car.getKey(location), location, carPrice);
+	}
+
+	public boolean reserveRoomForCustomer(int customerID, String location,
+							   int roomPrice) throws RemoteException {
+		return addReservationToCustomer(customerID, Room.getKey(location),
+				location, roomPrice);
 	}
 
 	// Reserve bundle 

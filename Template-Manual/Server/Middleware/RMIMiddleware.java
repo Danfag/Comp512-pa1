@@ -11,7 +11,6 @@ import java.rmi.NotBoundException;
 public class RMIMiddleware extends Middleware {
     // For client to connect to middleware
     public static String middlewareName = "RMI Middleware";
-    public String middlewareHost;
     public int middlewarePort;
 
     public static class ServerInfo {
@@ -56,7 +55,7 @@ public class RMIMiddleware extends Middleware {
         return rmiMiddleware;
     }
 
-    public static void connectServer() throws RemoteException
+    public static void connectServer() throws Exception
     {
         // Connect to flights RM
         ServerInfo[] servers = {flightServer, carServer,
@@ -78,6 +77,7 @@ public class RMIMiddleware extends Middleware {
                     }
                 }
             }
+            Thread.sleep(500);
         }
         System.out.println("Connections complete!");
     }

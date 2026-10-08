@@ -10,7 +10,7 @@ import java.rmi.server.UnicastRemoteObject;
 public class Main {
     public static void main(String[] args)
     {
-        if (args.length != 10) {
+        if (args.length != 9) {
             System.err.println("Invalid inputs given");
             System.exit(1);
         }
@@ -29,15 +29,14 @@ public class Main {
         System.out.println("Connecting middleware to server...");
         try {
             RMIMiddleware.connectServer();
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             System.out.println(
                     "Middleware cannot connect to server: " + e.getMessage());
         }
         System.out.println("Connection complete.");
 
         RMIMiddleware middleware = RMIMiddleware.create();
-        middleware.middlewareHost = args[8];
-        middleware.middlewarePort = Integer.parseInt(args[9]);
+        middleware.middlewarePort = Integer.parseInt(args[8]);
 
         // Open middleware to registry
         try {
@@ -46,9 +45,9 @@ public class Main {
 
         Registry m_registry;
         try {
-            m_registry = LocateRegistry.createRegistry(1099);
+            m_registry = LocateRegistry.createRegistry(middleware.middlewarePort);
         } catch (RemoteException e) {
-            m_registry = LocateRegistry.getRegistry(1099);
+            m_registry = LocateRegistry.getRegistry(middleware.middlewarePort);
         }
 
         final Registry registry = m_registry;

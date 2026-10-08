@@ -23,7 +23,7 @@ public abstract class Middleware implements IResourceManager {
         Middleware.orchestratorRM = orchestratorRM;
     }
 
-    private static IResourceManager getFlightRM() {
+    protected static IResourceManager getFlightRM() {
         if (flightRM == null) {
             throw new IllegalStateException("The middleware is not connected " +
                     "to the flights server. Please call connectServer() to " +
@@ -32,7 +32,7 @@ public abstract class Middleware implements IResourceManager {
         return Middleware.flightRM;
     }
 
-    private static IResourceManager getCarRM() {
+    protected static IResourceManager getCarRM() {
         if (carRM == null) {
             throw new IllegalStateException("The middleware is not connected " +
                     "to the cars server. Please call connectServer() to " +
@@ -41,7 +41,7 @@ public abstract class Middleware implements IResourceManager {
         return Middleware.carRM;
     }
 
-    private static IResourceManager getRoomRM() {
+    protected static IResourceManager getRoomRM() {
         if (roomRM == null) {
             throw new IllegalStateException("The middleware is not connected " +
                     "to the rooms server. Please call connectServer() to " +
@@ -50,7 +50,7 @@ public abstract class Middleware implements IResourceManager {
         return Middleware.roomRM;
     }
 
-    private static IResourceManager getCustomerRM() {
+    protected static IResourceManager getCustomerRM() {
         if (customerRM == null) {
             throw new IllegalStateException("The middleware is not connected " +
                     "to the customers server. Please call connectServer() to " +
@@ -71,13 +71,17 @@ public abstract class Middleware implements IResourceManager {
 
     // Flight RM methods
     public boolean addFlight(int flightNum, int flightSeats, int flightPrice) throws RemoteException {
-        return getFlightRM().addFlight(flightNum, flightSeats,
-                flightPrice);
+        synchronized (flightRM) {
+            return getFlightRM().addFlight(flightNum, flightSeats,
+                    flightPrice);
+        }
     }
 
     public boolean deleteFlight(int flightNum)
             throws RemoteException {
-        return getFlightRM().deleteFlight(flightNum);
+        synchronized (flightRM) {
+            return getFlightRM().deleteFlight(flightNum);
+        }
     }
 
     public int queryFlight(int flightNumber)
@@ -93,12 +97,16 @@ public abstract class Middleware implements IResourceManager {
     // Car RM methods
     public boolean addCars(String location, int numCars, int price)
             throws RemoteException {
-        return getCarRM().addCars(location, numCars, price);
+        synchronized (carRM) {
+            return getCarRM().addCars(location, numCars, price);
+        }
     }
 
     public boolean deleteCars(String location)
             throws RemoteException {
-        return getCarRM().deleteCars(location);
+        synchronized (carRM) {
+            return getCarRM().deleteCars(location);
+        }
     }
 
     public int queryCars(String location)
@@ -113,12 +121,16 @@ public abstract class Middleware implements IResourceManager {
     // Room RM methods
     public boolean addRooms(String location, int numRooms, int price)
             throws RemoteException {
-        return  getRoomRM().addRooms(location, numRooms, price);
+        synchronized (roomRM) {
+            return getRoomRM().addRooms(location, numRooms, price);
+        }
     }
 
     public boolean deleteRooms(String location)
             throws RemoteException {
-        return  getRoomRM().deleteRooms(location);
+        synchronized (roomRM) {
+            return getRoomRM().deleteRooms(location);
+        }
     };
 
     public int queryRooms(String location)
@@ -133,17 +145,23 @@ public abstract class Middleware implements IResourceManager {
     // Customer RM methods
     public int newCustomer()
             throws RemoteException {
-        return getCustomerRM().newCustomer();
+        synchronized (customerRM) {
+            return getCustomerRM().newCustomer();
+        }
     }
 
     public boolean newCustomer(int cid)
             throws RemoteException {
-        return getCustomerRM().newCustomer(cid);
+        synchronized (customerRM) {
+            return getCustomerRM().newCustomer(cid);
+        }
     }
 
     public boolean deleteCustomer(int customerID)
             throws RemoteException {
-        return getCustomerRM().deleteCustomer(customerID);
+        synchronized (customerRM) {
+            return getCustomerRM().deleteCustomer(customerID);
+        }
     }
 
     public String queryCustomerInfo(int customerID)
@@ -172,6 +190,21 @@ public abstract class Middleware implements IResourceManager {
         return getOrchestratorRM().bundle(customerID, flightNumbers, location,
                 car
                 , room);
+    }
+
+    @Override
+    public boolean reserveRoomForCustomer(int customerID, String location, int price) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
+    }
+
+    @Override
+    public boolean reserveCarForCustomer(int customerID, String location, int price) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
+    }
+
+    @Override
+    public boolean reserveFlightForCustomer(int customerID, int flightNumber, int flightPrice) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
     }
 
     public String getName() {
