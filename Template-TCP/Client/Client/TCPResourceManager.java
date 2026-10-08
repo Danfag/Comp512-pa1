@@ -270,7 +270,7 @@ public class TCPResourceManager implements IResourceManager  {
 
     public boolean bundle(int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException {
         // 1. Join the flight numbers with commas and wrap them in square brackets
-        String formattedFlights = "[" + String.join(",", flightNumbers) + "]";
+        String formattedFlights = "[" + String.join(":", flightNumbers) + "]";
 
         // 2. Build the comma-separated payload string
         String payload = String.join(",",

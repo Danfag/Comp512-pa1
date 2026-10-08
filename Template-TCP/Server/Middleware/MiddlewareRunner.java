@@ -171,9 +171,10 @@ public class MiddlewareRunner extends Middleware implements Runnable{
                         break;
 
                     case "BUNDLE":
+                        System.out.println(tokens[2]);
                          String[] flightNumbers =
                                 tokens[2].substring(1,
-                                        tokens[2].length()-1).split(",");
+                                        tokens[2].length()-1).split(":");
 
                         finalResponse = String.valueOf(
                                 bundle(Integer.parseInt(tokens[1]),

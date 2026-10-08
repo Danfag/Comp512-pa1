@@ -26,14 +26,12 @@ public class Orchestrator {
                 String payload = String.join(",", "QUERY_CUSTOMER",
                         String.valueOf(customerID));
                 if (middleware.customerRedirectionWithoutSynchro(payload).isEmpty()) {
-                    System.out.println("Could not find customer");
                     return false;
                 }
                 // Check if flight is available
                 payload = String.join(",", "QUERY_FLIGHT",
                         String.valueOf(flightNumber));
                 if (Integer.parseInt(middleware.flightRedirectionWithoutSynchro(payload)) <= 0) {
-                    System.out.println("Could not find flight");
                     return false;
                 }
 
@@ -86,7 +84,8 @@ public class Orchestrator {
                 payload = String.join(",", "RESERVE_CAR_CUSTOMER",
                         String.valueOf(customerID),
                         location, String.valueOf(carPrice));
-                if (!Boolean.parseBoolean(middleware.carRedirectionWithSynchro(payload))) {
+                if (!Boolean.parseBoolean(middleware.customerRedirectionWithSynchro(payload))) {
+                    System.out.println("reservation failed");
                     return false;
                 }
 
@@ -127,7 +126,7 @@ public class Orchestrator {
                 payload = String.join(",", "RESERVE_ROOM_CUSTOMER",
                         String.valueOf(customerID),
                         location, String.valueOf(roomPrice));
-                if (!Boolean.parseBoolean(middleware.roomRedirectionWithSynchro(payload))) {
+                if (!Boolean.parseBoolean(middleware.customerRedirectionWithSynchro(payload))) {
                     return false;
                 }
 
