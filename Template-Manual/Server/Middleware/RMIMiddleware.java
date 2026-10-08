@@ -10,7 +10,7 @@ import java.rmi.NotBoundException;
 
 public class RMIMiddleware extends Middleware {
     // For client to connect to middleware
-    public static String middlewareName = "RMI Middleware";
+    public static String middlewareName = "RMIMiddleware";
     public int middlewarePort;
 
     public static class ServerInfo {
@@ -71,6 +71,27 @@ public class RMIMiddleware extends Middleware {
                     try {
                         server.resourceManager =
                                 (IResourceManager) registry.lookup(serversRmiPrefix + server.name);
+
+                        switch (server.name) {
+                            case "Flights": {
+                                flightRM = server.resourceManager;
+                                continue;
+                            }
+                            case "Cars": {
+                                carRM = server.resourceManager;
+                                continue;
+                            }
+                            case "Rooms": {
+                                roomRM = server.resourceManager;
+                                continue;
+                            }
+                            case "Customers": {
+                                customerRM = server.resourceManager;
+                                continue;
+                            }
+                            default:
+                                System.out.println("Something wrong");
+                        }
                     } catch (NotBoundException e) {
                         System.out.println("Could not connect to " + server.name + " " +
                                 "server: " + e.getMessage() + "\n");

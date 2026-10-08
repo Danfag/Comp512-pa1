@@ -71,7 +71,7 @@ public class Orchestrator {
                 Middleware.getCarRM().reserveCar(customerID, location);
             }
         }
-        return false;
+        return true;
     }
 
     public boolean reserveRoom(int customerID, String location)
@@ -98,7 +98,7 @@ public class Orchestrator {
                 Middleware.getRoomRM().reserveRoom(customerID, location);
             }
         }
-        return false;
+        return true;
     }
 
     public boolean bundle(int customerID, Vector<String> flightNumbers,
