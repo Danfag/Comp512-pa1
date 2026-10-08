@@ -162,6 +162,24 @@ public class ServerRunner implements Runnable {
                             response = Boolean.toString(resRoomRes);
                             break;
 
+                        case "RELEASE_FLIGHT":
+                            response = Boolean.toString(resourceManager.releaseFlight(
+                                    Integer.parseInt(tokens[1]),
+                                    Integer.parseInt(tokens[2])));
+                            break;
+
+                        case "RELEASE_CAR":
+                            response = Boolean.toString(resourceManager.releaseCar(
+                                    tokens[1],
+                                    Integer.parseInt(tokens[2])));
+                            break;
+
+                        case "RELEASE_ROOM":
+                            response = Boolean.toString(resourceManager.releaseRoom(
+                                    tokens[1],
+                                    Integer.parseInt(tokens[2])));
+                            break;
+
                         case "RESERVE_FLIGHT_CUSTOMER":
                             boolean resCusFlightRes =
                                     resourceManager.reserveFlightForCustomer(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));

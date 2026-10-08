@@ -167,6 +167,10 @@ public abstract class Middleware {
         return getOrchestratorRM().reserveRoom(customerID, location);
     }
 
+    public boolean deleteCustomer(int customerID) throws IOException {
+        return getOrchestratorRM().deleteCustomer(customerID);
+    }
+
     public boolean bundle(int customerID, String[] flightNumbers,
                           String location, boolean car, boolean room) throws IOException {
         return getOrchestratorRM().bundle(customerID, flightNumbers, location,

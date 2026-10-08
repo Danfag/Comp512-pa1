@@ -137,6 +137,18 @@ public class TCPResourceManager implements IResourceManager  {
         }
     }
 
+    public boolean releaseFlight(int flightNumber, int count) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
+    public boolean releaseCar(String location, int count) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
+    public boolean releaseRoom(String location, int count) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
     public int queryFlight(int flightNumber) throws RemoteException {
         String payload = String.join(",", "QUERY_FLIGHT", String.valueOf(flightNumber));
         out.println(payload);

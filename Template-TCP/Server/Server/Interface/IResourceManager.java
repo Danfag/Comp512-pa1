@@ -113,6 +113,15 @@ public interface IResourceManager extends Remote
     public boolean deleteCustomer(int customerID)
             throws RemoteException;
 
+    public boolean releaseFlight(int flightNumber, int count)
+            throws RemoteException;
+
+    public boolean releaseCar(String location, int count)
+            throws RemoteException;
+
+    public boolean releaseRoom(String location, int count)
+            throws RemoteException;
+
     /**
      * Query the status of a flight.
      *

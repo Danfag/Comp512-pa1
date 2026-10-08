@@ -146,12 +146,15 @@ public class MiddlewareRunner extends Middleware implements Runnable{
 
                     case "ADD_CUSTOMER":
                     case "ADD_CUSTOMER_ID":
-                    case "DELETE_CUSTOMER":
                         finalResponse = customerRedirectionWithSynchro(request);
                         break;
                     case "QUERY_CUSTOMER":
                         finalResponse =
                                 customerRedirectionWithoutSynchro(request);
+                        break;
+                    case "DELETE_CUSTOMER":
+                        finalResponse = String.valueOf(
+                                deleteCustomer(Integer.parseInt(tokens[1])));
                         break;
 
                     case "RESERVE_FLIGHT":

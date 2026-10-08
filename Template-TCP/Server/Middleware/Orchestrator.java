@@ -141,6 +141,107 @@ public class Orchestrator {
         return true;
     }
 
+    public boolean deleteCustomer(int customerID) throws IOException {
+        synchronized (middleware.getCustomerStreams()) {
+            synchronized (middleware.getFlightStreams()) {
+                synchronized (middleware.getCarStreams()) {
+                    synchronized (middleware.getRoomStreams()) {
+                        String request = String.join(",", "QUERY_CUSTOMER",
+                                String.valueOf(customerID));
+                        String bill =
+                                middleware.customerRedirectionWithoutSynchro(request);
+                        if (bill.isEmpty()) {
+                            return false;
+                        }
+
+                        Map<String, Integer> reservations = new HashMap<>();
+                        String[] lines = bill.split("\\r?\\n");
+                        try {
+                            for (int i = 1; i < lines.length; i++) {
+                                String line = lines[i].trim();
+                                if (line.isEmpty()) {
+                                    continue;
+                                }
+                                String[] fields = line.split("\\s+");
+                                if (fields.length < 2) {
+                                    throw new IOException(
+                                            "Invalid customer reservation line: " + line);
+                                }
+                                int count = Integer.parseInt(fields[0]);
+                                if (count <= 0) {
+                                    throw new IOException(
+                                            "Invalid reservation count in line: " + line);
+                                }
+                                reservations.merge(fields[1].toLowerCase(), count,
+                                        Integer::sum);
+                            }
+                        } catch (NumberFormatException e) {
+                            throw new IOException("Invalid customer reservation bill", e);
+                        }
+
+                        for (Map.Entry<String, Integer> reservation :
+                                reservations.entrySet()) {
+                            String key = reservation.getKey();
+                            int count = reservation.getValue();
+                            String[] keyParts = key.split("-", 2);
+                            if (keyParts.length != 2 || keyParts[1].isEmpty()) {
+                                throw new IOException(
+                                        "Invalid reservation key in customer bill: " + key);
+                            }
+
+                            String releaseRequest;
+                            switch (keyParts[0]) {
+                                case "flight":
+                                    int flightNumber;
+                                    try {
+                                        flightNumber = Integer.parseInt(keyParts[1]);
+                                    } catch (NumberFormatException e) {
+                                        throw new IOException(
+                                                "Invalid flight key in customer bill: " + key, e);
+                                    }
+                                    releaseRequest = String.join(",", "RELEASE_FLIGHT",
+                                            String.valueOf(flightNumber),
+                                            String.valueOf(count));
+                                    if (!Boolean.parseBoolean(
+                                            middleware.flightRedirectionWithSynchro(
+                                                    releaseRequest))) {
+                                        return false;
+                                    }
+                                    break;
+                                case "car":
+                                    releaseRequest = String.join(",", "RELEASE_CAR",
+                                            keyParts[1], String.valueOf(count));
+                                    if (!Boolean.parseBoolean(
+                                            middleware.carRedirectionWithSynchro(
+                                                    releaseRequest))) {
+                                        return false;
+                                    }
+                                    break;
+                                case "room":
+                                    releaseRequest = String.join(",", "RELEASE_ROOM",
+                                            keyParts[1], String.valueOf(count));
+                                    if (!Boolean.parseBoolean(
+                                            middleware.roomRedirectionWithSynchro(
+                                                    releaseRequest))) {
+                                        return false;
+                                    }
+                                    break;
+                                default:
+                                    throw new IOException(
+                                            "Unknown reservation type in customer bill: " + key);
+                            }
+                        }
+
+                        request = String.join(",", "DELETE_CUSTOMER",
+                                String.valueOf(customerID));
+                        return Boolean.parseBoolean(
+                                middleware.customerRedirectionWithSynchro(request));
+                    }
+                }
+            }
+        }
+    }
+
     public boolean bundle(int customerID, String[] flightNumbers,
                                        String location, boolean car, boolean room)
             throws IOException
