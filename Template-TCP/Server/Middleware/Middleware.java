@@ -7,6 +7,10 @@ import java.io.PrintWriter;
 // Probably dont need to implement all, just need to reroute
 public abstract class Middleware {
     private static final char RESPONSE_TERMINATOR = '\u001e';
+    protected static final Object CUSTOMER_LOCK = new Object();
+    protected static final Object FLIGHT_LOCK = new Object();
+    protected static final Object CAR_LOCK = new Object();
+    protected static final Object ROOM_LOCK = new Object();
 
     protected String m_name;
 
@@ -90,7 +94,7 @@ public abstract class Middleware {
 
     public String flightRedirectionWithSynchro(String request) throws IOException
     {
-        synchronized(flightStreams) {
+        synchronized(FLIGHT_LOCK) {
             return flightRedirectionWithoutSynchro(request);
         }
     }
@@ -104,7 +108,7 @@ public abstract class Middleware {
 
     public String carRedirectionWithSynchro(String request) throws IOException
     {
-        synchronized(carStreams) {
+        synchronized(CAR_LOCK) {
             return carRedirectionWithoutSynchro(request);
         }
     }
@@ -119,7 +123,7 @@ public abstract class Middleware {
 
     public String roomRedirectionWithSynchro(String request) throws IOException
     {
-        synchronized(roomStreams) {
+        synchronized(ROOM_LOCK) {
             return roomRedirectionWithoutSynchro(request);
         }
     }
@@ -151,7 +155,7 @@ public abstract class Middleware {
 
     public String customerRedirectionWithSynchro(String request) throws IOException
     {
-        synchronized(customerStreams) {
+        synchronized(CUSTOMER_LOCK) {
             return customerRedirectionWithoutSynchro(request);
         }
     }

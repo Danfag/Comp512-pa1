@@ -10,18 +10,18 @@ import java.util.Vector;
 // instead of extending maybe just have a refernce to one?
 // that's kind of what we want anyways
 public class Orchestrator {
-    private static Middleware middleware;
+    private Middleware middleware;
 
     private static final String p_name = "Orchestrator";
 
     public Orchestrator(Middleware middleware) {
-        Orchestrator.middleware = middleware;
+        this.middleware = middleware;
     }
 
     public boolean reserveFlight(int customerID, int flightNumber)
             throws IOException {
-        synchronized (middleware.getCustomerStreams()) {
-            synchronized (middleware.getFlightStreams()) {
+        synchronized (Middleware.CUSTOMER_LOCK) {
+            synchronized (Middleware.FLIGHT_LOCK) {
                 // Check if customer exists
                 String payload = String.join(",", "QUERY_CUSTOMER",
                         String.valueOf(customerID));
@@ -60,8 +60,8 @@ public class Orchestrator {
 
     public boolean reserveCar(int customerID, String location)
             throws IOException {
-        synchronized (middleware.getCustomerStreams()) {
-            synchronized (middleware.getCarStreams()) {
+        synchronized (Middleware.CUSTOMER_LOCK) {
+            synchronized (Middleware.CAR_LOCK) {
                 // Check if customer exists
                 String payload = String.join(",", "QUERY_CUSTOMER",
                         String.valueOf(customerID));
@@ -102,8 +102,8 @@ public class Orchestrator {
 
     public boolean reserveRoom(int customerID, String location)
             throws IOException {
-        synchronized (middleware.getCustomerStreams()) {
-            synchronized (middleware.getRoomStreams()) {
+        synchronized (Middleware.CUSTOMER_LOCK) {
+            synchronized (Middleware.ROOM_LOCK) {
                 // Check if customer exists
                 String payload = String.join(",", "QUERY_CUSTOMER",
                         String.valueOf(customerID));
@@ -142,10 +142,10 @@ public class Orchestrator {
     }
 
     public boolean deleteCustomer(int customerID) throws IOException {
-        synchronized (middleware.getCustomerStreams()) {
-            synchronized (middleware.getFlightStreams()) {
-                synchronized (middleware.getCarStreams()) {
-                    synchronized (middleware.getRoomStreams()) {
+        synchronized (Middleware.CUSTOMER_LOCK) {
+            synchronized (Middleware.FLIGHT_LOCK) {
+                synchronized (Middleware.CAR_LOCK) {
+                    synchronized (Middleware.ROOM_LOCK) {
                         String request = String.join(",", "GET_CUSTOMER_RESERVATIONS",
                                 String.valueOf(customerID));
                         String reservationsResponse =
@@ -262,8 +262,8 @@ public class Orchestrator {
             return false;
         }
 
-        synchronized (middleware.getCustomerStreams()) {
-            synchronized (middleware.getCustomerStreams()) {
+        synchronized (Middleware.CUSTOMER_LOCK) {
+            synchronized (Middleware.FLIGHT_LOCK) {
                 String payload = String.join(",", "QUERY_CUSTOMER",
                         String.valueOf(customerID));
                 if (middleware.customerRedirectionWithoutSynchro(payload).isEmpty()) {
@@ -285,8 +285,8 @@ public class Orchestrator {
                     }
                 }
 
-                synchronized (middleware.getCarStreams()) {
-                    synchronized (middleware.getRoomStreams()) {
+                synchronized (Middleware.CAR_LOCK) {
+                    synchronized (Middleware.ROOM_LOCK) {
                         payload = String.join(",", "QUERY_CARS", location);
                         if (car && Integer.parseInt(middleware.carRedirectionWithoutSynchro(payload)) < 1) return false;
                         payload = String.join(",", "QUERY_ROOMS", location);
