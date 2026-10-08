@@ -35,7 +35,7 @@ public class TCPMiddleware {
         while (true) {
             Socket client = middleware_socket.accept();
 
-            new Thread(new MiddlewareRunner(
+            new Thread(MiddlewareRunner.create(
                     client,
                     serverFlightHost, serverFlightPort,
                     serverCarHost, serverCarPort,

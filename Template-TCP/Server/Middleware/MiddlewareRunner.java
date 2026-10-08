@@ -7,12 +7,28 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
-public class MiddlewareRunner implements Runnable {
+public class MiddlewareRunner extends Middleware implements Runnable{
+
+    // this could have a middleware instance, and whenever it gets a request
+    // it can decode which method it should go to, then call it
+    // and the middleware and orchestrator can make the requests
+
+    // this is what takes the incoming request, and handles it
+    // if we define functions with the same interface as middleware, but
+    // instead of just calling, it actually makes the request then returns
+    // the response, that would make this seemless
+
+    // So we need an orchestrator insteance and a middleware instance
+
+
+    // We really just need an orchestrator, but an orchestrator needs a
+    // middleware
+    private static String name = "MiddlewareRunner";
+
     private Socket client;
     private Socket flightSocket;
     private Socket carSocket;
@@ -28,16 +44,17 @@ public class MiddlewareRunner implements Runnable {
     private BufferedReader fromCustomer;
     private PrintWriter toCustomer;
 
-    public MiddlewareRunner(Socket client,
+    private MiddlewareRunner(Socket client,
                             String flightHost, int flightPort,
                             String carHost, int carPort,
                             String roomHost, int roomPort,
                             String customerHost, int customerPort) {
+        super(name);
         try {
             this.client = client;
 
             // Establish dedicated downstream TCP connections for this specific client thread
-            this.flightSocket = new Socket(flightHost, flightPort);
+            flightSocket = new Socket(flightHost, flightPort);
             this.carSocket = new Socket(carHost, carPort);
             this.roomSocket = new Socket(roomHost, roomPort);
             this.customerSocket = new Socket(customerHost, customerPort);
@@ -59,98 +76,29 @@ public class MiddlewareRunner implements Runnable {
         }
     }
 
-    public synchronized boolean bundle(int customerID, Vector<String> flightNumbers,
-                                       String location, boolean car, boolean room) {
-        try {
-            // 1. Check customer existence via customer socket
-            toCustomer.println("QUERY_CUSTOMER," + customerID);
-            String custResp = fromCustomer.readLine();
-            if (custResp == null || custResp.isEmpty() || custResp.startsWith("ERROR")) {
-                Trace.warn("Middleware::bundle failed--customer " + customerID + " does not exist");
-                return false;
-            }
+    public static MiddlewareRunner create(Socket client,
+                            String flightHost, int flightPort,
+                            String carHost, int carPort,
+                            String roomHost, int roomPort,
+                            String customerHost, int customerPort) {
+        MiddlewareRunner middlewareRunner = new MiddlewareRunner(client,
+                flightHost, flightPort, carHost, carPort, roomHost, roomPort,
+                customerHost, customerPort);
 
-            if (flightNumbers == null || flightNumbers.isEmpty()) {
-                Trace.warn("Middleware::bundle failed--at least one flight is required");
-                return false;
-            }
+        middlewareRunner.flightStreams =
+                new SocketStreams(middlewareRunner.fromFlight,
+                middlewareRunner.toFlight);
+        middlewareRunner.carStreams =
+                new SocketStreams(middlewareRunner.fromCar, middlewareRunner.toCar);
+        middlewareRunner.roomStreams = new SocketStreams(middlewareRunner.fromRoom, middlewareRunner.toRoom);
+        middlewareRunner.customerStreams = new SocketStreams(middlewareRunner.fromCustomer,
+                middlewareRunner.toCustomer);
 
-            // 2. Count duplicate flight numbers requested in the bundle
-            Map<Integer, Integer> requestedFlights = new HashMap<>();
-            try {
-                for (String flight : flightNumbers) {
-                    int flightNum = Integer.parseInt(flight.trim());
-                    requestedFlights.put(flightNum, requestedFlights.getOrDefault(flightNum, 0) + 1);
-                }
-            } catch (NumberFormatException e) {
-                Trace.warn("Middleware::bundle failed--invalid flight number format");
-                return false;
-            }
+        Orchestrator orchestrator = new Orchestrator(middlewareRunner);
+        middlewareRunner.setOrchestratorRM(orchestrator);
 
-            // 3. Validate flight availability via flight socket
-            for (Map.Entry<Integer, Integer> entry : requestedFlights.entrySet()) {
-                toFlight.println("QUERY_FLIGHT," + entry.getKey());
-                String resp = fromFlight.readLine();
-                if (resp == null) return false;
-                int available = Integer.parseInt(resp);
-                if (available < entry.getValue()) {
-                    return false;
-                }
-            }
-
-            // 4. Validate car availability via car socket
-            if (car) {
-                toCar.println("QUERY_CARS," + location);
-                String resp = fromCar.readLine();
-                if (resp == null || Integer.parseInt(resp) < 1) return false;
-            }
-
-            // 5. Validate room availability via room socket
-            if (room) {
-                toRoom.println("QUERY_ROOMS," + location);
-                String resp = fromRoom.readLine();
-                if (resp == null || Integer.parseInt(resp) < 1) return false;
-            }
-
-            // 6. Perform reservations and update customer records
-            for (String flight : flightNumbers) {
-                int flightNum = Integer.parseInt(flight.trim());
-                toFlight.println("RESERVE_FLIGHT," + customerID + "," + flightNum);
-                String flightReserveResp = fromFlight.readLine();
-                if (!Boolean.parseBoolean(flightReserveResp)) {
-                    return false;
-                }
-                toCustomer.println("ADD_CUSTOMER_RES," + customerID + ",FLIGHT," + flightNum);
-                fromCustomer.readLine();
-            }
-
-            if (car) {
-                toCar.println("RESERVE_CAR," + customerID + "," + location);
-                String carReserveResp = fromCar.readLine();
-                if (!Boolean.parseBoolean(carReserveResp)) {
-                    return false;
-                }
-                toCustomer.println("ADD_CUSTOMER_RES," + customerID + ",CAR," + location);
-                fromCustomer.readLine();
-            }
-
-            if (room) {
-                toRoom.println("RESERVE_ROOM," + customerID + "," + location);
-                String roomReserveResp = fromRoom.readLine();
-                if (!Boolean.parseBoolean(roomReserveResp)) {
-                    return false;
-                }
-                toCustomer.println("ADD_CUSTOMER_RES," + customerID + ",ROOM," + location);
-                fromCustomer.readLine();
-            }
-
-            return true;
-
-        } catch (IOException | NumberFormatException e) {
-            System.err.println("Error during bundle execution: " + e.getMessage());
-            return false;
-        }
-    }
+        return middlewareRunner;
+    };
 
     @Override
     public void run() {
@@ -169,76 +117,82 @@ public class MiddlewareRunner implements Runnable {
                 switch (command) {
                     case "ADD_FLIGHT":
                     case "DELETE_FLIGHT":
+                        finalResponse = flightRedirectionWithSynchro(request);
+                        break;
                     case "QUERY_FLIGHT":
                     case "QUERY_FLIGHT_PRICE":
-                        toFlight.println(request);
-                        finalResponse = fromFlight.readLine();
+                        finalResponse =
+                                flightRedirectionWithoutSynchro(request);
                         break;
 
                     case "ADD_CARS":
                     case "DELETE_CARS":
+                        finalResponse = carRedirectionWithSynchro(request);
+                        break;
                     case "QUERY_CARS":
                     case "QUERY_CARS_PRICE":
-                        toCar.println(request);
-                        finalResponse = fromCar.readLine();
+                        finalResponse = carRedirectionWithoutSynchro(request);
                         break;
 
                     case "ADD_ROOMS":
                     case "DELETE_ROOMS":
+                        finalResponse = roomRedirectionWithSynchro(request);
+                        break;
                     case "QUERY_ROOMS":
                     case "QUERY_ROOMS_PRICE":
-                        toRoom.println(request);
-                        finalResponse = fromRoom.readLine();
+                        finalResponse = roomRedirectionWithoutSynchro(request);
                         break;
 
                     case "ADD_CUSTOMER":
                     case "ADD_CUSTOMER_ID":
+                    case "DELETE_CUSTOMER":
+                        finalResponse = customerRedirectionWithSynchro(request);
+                        break;
                     case "QUERY_CUSTOMER":
-                        toCustomer.println(request);
-                        finalResponse = fromCustomer.readLine();
+                        finalResponse =
+                                customerRedirectionWithoutSynchro(request);
                         break;
 
                     case "RESERVE_FLIGHT":
-                        toFlight.println(request);
-                        String flightResp = fromFlight.readLine();
-                        if (Boolean.parseBoolean(flightResp)) {
-                            toCustomer.println("ADD_CUSTOMER_RES," + tokens[1] + ",FLIGHT," + tokens[2]);
-                            finalResponse = fromCustomer.readLine();
-                        } else {
-                            finalResponse = "false";
-                        }
+                        finalResponse = String.valueOf(
+                                reserveFlight(Integer.parseInt(tokens[1]),
+                                Integer.parseInt(tokens[2])));
+                        break;
+                    case "RESERVE_CAR":
+                        finalResponse = String.valueOf(
+                                reserveCar(Integer.parseInt(tokens[1]),
+                                        tokens[2]));
+                        break;
+                    case "RESERVE_ROOM":
+                        finalResponse = String.valueOf(
+                                reserveRoom(Integer.parseInt(tokens[1]),
+                                        tokens[2]));
                         break;
 
-                    case "DELETE_CUSTOMER":
-                        finalResponse = "true";
-                        break;
+                    case "BUNDLE":
+                         String[] flightNumbers =
+                                tokens[2].substring(1,
+                                        tokens[2].length()-1).split(",");
 
-                    case "BUNLDE":
-                        try {
-                            int customerID = Integer.parseInt(tokens[1]);
-                            Vector<String> flightList = new Vector<>();
-                            String[] flightsArr = tokens[2].split(";");
-                            for (String f : flightsArr) {
-                                if (!f.trim().isEmpty()) {
-                                    flightList.add(f.trim());
-                                }
-                            }
-                            String location = tokens[3];
-                            boolean wantCar = Boolean.parseBoolean(tokens[4]);
-                            boolean wantRoom = Boolean.parseBoolean(tokens[5]);
+                        finalResponse = String.valueOf(
+                                bundle(Integer.parseInt(tokens[1]),
+                                        flightNumbers, tokens[3],
+                                        Boolean.parseBoolean(tokens[4]),
+                                        Boolean.parseBoolean(tokens[5])));
 
-                            boolean success = bundle(customerID, flightList, location, wantCar, wantRoom);
-                            finalResponse = Boolean.toString(success);
-                        } catch (Exception e) {
-                            finalResponse = "false";
-                        }
                         break;
 
                     default:
                         finalResponse = "ERROR: Unknown command " + command;
                 }
 
-                to_client.println(finalResponse);
+                if (command.equals("QUERY_CUSTOMER")) {
+                    to_client.println(finalResponse.length());
+                    to_client.print(finalResponse);
+                    to_client.flush();
+                } else {
+                    to_client.println(finalResponse);
+                }
             }
 
         } catch (IOException e) {

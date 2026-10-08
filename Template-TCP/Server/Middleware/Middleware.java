@@ -1,158 +1,194 @@
 package Middleware;
 
-import Server.Common.ResourceManager;
-import Server.Interface.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
 
-import java.rmi.RemoteException;
-import java.security.KeyStore;
-import java.util.HashMap;
-import java.util.Vector;
+// Probably dont need to implement all, just need to reroute
+public abstract class Middleware {
+    protected String m_name;
 
+    protected SocketStreams flightStreams;
+    protected SocketStreams carStreams;
+    protected SocketStreams roomStreams;
+    protected SocketStreams customerStreams;
+    protected Orchestrator orchestratorRM = null;
 
-public abstract class Middleware implements IResourceManager {
-
-    protected String m_name = "";
-
-    IResourceManager flightResourceManager = null;
-    IResourceManager carResourceManager = null;
-    IResourceManager roomResourceManager = null;
-    IResourceManager customerResourceManager = null;
-
-
-    public Middleware(String p_name) {
-        this.m_name = p_name;
+    protected Middleware(String m_name) {
+        this.m_name = m_name;
     }
 
-    public boolean addFlight(int flightNum, int flightSeats, int flightPrice) throws RemoteException {
-        return flightResourceManager.addFlight(flightNum, flightSeats,
-                flightPrice);
-
+    protected void setOrchestratorRM(Orchestrator orchestratorRM) {
+        this.orchestratorRM = orchestratorRM;
     }
 
-    public boolean addCars(String location, int numCars, int price)
-            throws RemoteException {
-        return carResourceManager.addCars(location, numCars, price);
-    }
+    public static class SocketStreams {
+        public BufferedReader from_resource;
+        public PrintWriter to_resource;
 
-    public boolean addRooms(String location, int numRooms, int price)
-            throws RemoteException {
-        return roomResourceManager.addRooms(location, numRooms, price);
-    }
-
-    public int newCustomer()
-            throws RemoteException {
-        return customerResourceManager.newCustomer();
-    }
-
-    public boolean newCustomer(int cid)
-            throws RemoteException {
-        return customerResourceManager.newCustomer(cid);
-    }
-
-    public boolean deleteFlight(int flightNum)
-            throws RemoteException {
-        return flightResourceManager.deleteFlight(flightNum);
-    }
-
-    public boolean deleteCars(String location)
-            throws RemoteException {
-        return carResourceManager.deleteCars(location);
-    };
-
-    public boolean deleteRooms(String location)
-            throws RemoteException {
-        return roomResourceManager.deleteRooms(location);
-    };
-
-    public boolean deleteCustomer(int customerID)
-            throws RemoteException {
-        return customerResourceManager.deleteCustomer(customerID);
-    }
-
-    public int queryFlight(int flightNumber)
-            throws RemoteException {
-        return flightResourceManager.queryFlight(flightNumber);
-    }
-
-    public int queryCars(String location)
-            throws RemoteException {
-        return carResourceManager.queryCars(location);
-    }
-
-    public int queryRooms(String location)
-            throws RemoteException {
-        return roomResourceManager.queryRooms(location);
-    }
-
-    public String queryCustomerInfo(int customerID)
-            throws RemoteException {
-        return customerResourceManager.queryCustomerInfo(customerID);
-    };
-
-    public int queryFlightPrice(int flightNumber)
-            throws RemoteException {
-        return flightResourceManager.queryFlightPrice(flightNumber);
-    }
-
-    public int queryCarsPrice(String location)
-            throws RemoteException {
-        return carResourceManager.queryCarsPrice(location);
-    }
-
-    public int queryRoomsPrice(String location)
-            throws RemoteException {
-        return roomResourceManager.queryRoomsPrice(location);
-    }
-
-    public boolean reserveFlight(int customerID, int flightNumber)
-            throws RemoteException {
-        return flightResourceManager.reserveFlight(customerID, flightNumber);
-    }
-
-    public boolean reserveCar(int customerID, String location)
-            throws RemoteException {
-        return carResourceManager.reserveCar(customerID, location);
-    }
-
-    public boolean reserveRoom(int customerID, String location)
-            throws RemoteException {
-        return roomResourceManager.reserveRoom(customerID, location);
-    }
-
-    public boolean bundle(int customerID, Vector<String> flightNumbers,
-                          String location, boolean car, boolean room)
-            throws RemoteException {
-
-        if (car && this.queryCars(location) <= 0) {
-            return false;
+        public SocketStreams (BufferedReader in,
+                            PrintWriter out) {
+            this.from_resource = in;
+            this.to_resource = out;
         }
-        if (room && this.queryRooms(location) <= 0) {
-            return false;
+    }
+
+    protected SocketStreams getFlightStreams() {
+        if (flightStreams == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the flights server. Please call connectServer() to " +
+                    "connect to the servers");
         }
-        for (String flightNumber : flightNumbers) {
-            if (this.queryFlight(Integer.parseInt(flightNumber)) <= 0) {
-                return false;
+        return flightStreams;
+    }
+
+    protected SocketStreams getCarStreams() {
+        if (carStreams == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the cars server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return carStreams;
+    }
+
+    protected SocketStreams getRoomStreams() {
+        if (roomStreams == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the rooms server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return roomStreams;
+    }
+
+    protected SocketStreams getCustomerStreams() {
+        if (customerStreams == null) {
+            throw new IllegalStateException("The middleware is not connected " +
+                    "to the customers server. Please call connectServer() to " +
+                    "connect to the servers");
+        }
+        return customerStreams;
+    }
+
+    private Orchestrator getOrchestratorRM() {
+        if (orchestratorRM == null) {
+            throw new IllegalStateException("The middleware was not properly " +
+                    "built. The orchestrator RM must be " +
+                    "defined after " +
+                    "instantiation");
+        }
+        return orchestratorRM;
+    }
+
+    // Flight redirection
+    public String flightRedirectionWithoutSynchro(String request) throws IOException
+    {
+        getFlightStreams().to_resource.println(request);
+        return getFlightStreams().from_resource.readLine();
+    }
+
+    public String flightRedirectionWithSynchro(String request) throws IOException
+    {
+        synchronized(flightStreams) {
+            return flightRedirectionWithoutSynchro(request);
+        }
+    }
+
+    // Car redirection
+    public String carRedirectionWithoutSynchro(String request) throws IOException
+    {
+        getCarStreams().to_resource.println(request);
+        return getCarStreams().from_resource.readLine();
+    }
+
+    public String carRedirectionWithSynchro(String request) throws IOException
+    {
+        synchronized(carStreams) {
+            return carRedirectionWithoutSynchro(request);
+        }
+    }
+
+
+    // Room redirection
+    public String roomRedirectionWithoutSynchro(String request) throws IOException
+    {
+        getRoomStreams().to_resource.println(request);
+        return getRoomStreams().from_resource.readLine();
+    }
+
+    public String roomRedirectionWithSynchro(String request) throws IOException
+    {
+        synchronized(roomStreams) {
+            return roomRedirectionWithoutSynchro(request);
+        }
+    }
+
+    // Customer redirection
+    public String customerRedirectionWithoutSynchro(String request) throws IOException
+    {
+        getCustomerStreams().to_resource.println(request);
+        if (request.split(",", 2)[0].trim().equalsIgnoreCase("QUERY_CUSTOMER")) {
+            return readFramedResponse(getCustomerStreams().from_resource);
+        }
+        return getCustomerStreams().from_resource.readLine();
+    }
+
+    private String readFramedResponse(BufferedReader reader) throws IOException
+    {
+        String lengthLine = reader.readLine();
+        if (lengthLine == null) {
+            throw new IOException("Connection closed before response length");
+        }
+
+        int length;
+        try {
+            length = Integer.parseInt(lengthLine);
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid response length: " + lengthLine, e);
+        }
+        if (length < 0) {
+            throw new IOException("Invalid negative response length: " + length);
+        }
+
+        char[] response = new char[length];
+        int offset = 0;
+        while (offset < length) {
+            int count = reader.read(response, offset, length - offset);
+            if (count == -1) {
+                throw new IOException("Connection closed before response completed");
             }
+            offset += count;
         }
+        return new String(response);
+    }
 
-        // All is available: reserve
-        if (car) {
-            if (!this.reserveCar(customerID, location)) return false;
+    public String customerRedirectionWithSynchro(String request) throws IOException
+    {
+        synchronized(customerStreams) {
+            return customerRedirectionWithoutSynchro(request);
         }
-        if (room) {
-            if (!this.reserveRoom(customerID, location)) return false;
-        }
+    }
 
-        for (String flightNumber : flightNumbers) {
-            if (!this.reserveFlight(customerID,
-                    Integer.parseInt(flightNumber))) return false;
-        }
-        return true;
-    };
+    // Orchestrator RM methods
+    public boolean reserveFlight(int customerID, int flightNumber) throws IOException {
+        return getOrchestratorRM().reserveFlight(customerID, flightNumber);
+    }
+
+    public boolean reserveCar(int customerID, String location) throws IOException {
+        return getOrchestratorRM().reserveCar(customerID, location);
+    }
+
+    public boolean reserveRoom(int customerID, String location) throws IOException {
+        return getOrchestratorRM().reserveRoom(customerID, location);
+    }
+
+    public boolean bundle(int customerID, String[] flightNumbers,
+                          String location, boolean car, boolean room) throws IOException {
+        return getOrchestratorRM().bundle(customerID, flightNumbers, location,
+                car
+                , room);
+    }
 
     public String getName() {
         return this.m_name;
     }
-
-    public abstract void connectServer();
 }

@@ -45,10 +45,6 @@ public class TCPClient extends Client {
     private static String middlewareHost = "localhost";
     private static int middlewarePort = 1027;
 
-    // The client calls an IResourceManager to execute the commands
-    // We may need to make a tcp version of this where calling the method
-    // actually sends something through the socket
-
     public static void main(String[] args) throws IOException {
         if (args.length > 0) {
             middlewareHost = args[0];

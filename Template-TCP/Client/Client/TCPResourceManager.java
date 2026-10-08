@@ -176,11 +176,39 @@ public class TCPResourceManager implements IResourceManager  {
         out.println(payload);
 
         try {
-            return in.readLine();
+            return readFramedResponse();
         } catch (IOException e) {
             System.err.println("Error occurred while reading response");
             return "";
         }
+    }
+
+    private String readFramedResponse() throws IOException {
+        String lengthLine = in.readLine();
+        if (lengthLine == null) {
+            throw new IOException("Connection closed before response length");
+        }
+
+        int length;
+        try {
+            length = Integer.parseInt(lengthLine);
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid response length: " + lengthLine, e);
+        }
+        if (length < 0) {
+            throw new IOException("Invalid negative response length: " + length);
+        }
+
+        char[] response = new char[length];
+        int offset = 0;
+        while (offset < length) {
+            int count = in.read(response, offset, length - offset);
+            if (count == -1) {
+                throw new IOException("Connection closed before response completed");
+            }
+            offset += count;
+        }
+        return new String(response);
     }
 
     public int queryFlightPrice(int flightNumber) throws RemoteException {
@@ -256,10 +284,19 @@ public class TCPResourceManager implements IResourceManager  {
     }
 
     public boolean bundle(int customerID, Vector<String> flightNumbers, String location, boolean car, boolean room) throws RemoteException {
-        String payload = String.join(",", "BUNDLE",
-                String.valueOf(customerID), location, String.valueOf(car),
-                String.valueOf(room),
-                String.join(",", flightNumbers));
+        // 1. Join the flight numbers with commas and wrap them in square brackets
+        String formattedFlights = "[" + String.join(",", flightNumbers) + "]";
+
+        // 2. Build the comma-separated payload string
+        String payload = String.join(",",
+                "BUNDLE",
+                String.valueOf(customerID),
+                formattedFlights,
+                location,
+                String.valueOf(car),
+                String.valueOf(room)
+        );
+
         out.println(payload);
 
         try {
@@ -268,6 +305,20 @@ public class TCPResourceManager implements IResourceManager  {
             System.err.println("Error occurred while reading response");
             return false;
         }
+    }
+    @Override
+    public boolean reserveFlightForCustomer(int customerID, int flightNumber, int flightPrice) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
+    @Override
+    public boolean reserveCarForCustomer(int customerID, String location, int price) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
+    @Override
+    public boolean reserveRoomForCustomer(int customerID, String location, int price) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
     }
 
     public String getName() throws RemoteException {

@@ -35,7 +35,14 @@ public abstract class Client
 			Vector<String> arguments = new Vector<String>();
 			try {
 				System.out.print((char)27 + "[32;1m\n>] " + (char)27 + "[0m");
-				command = stdin.readLine().trim();
+				String input = stdin.readLine();
+				if (input == null) {
+					return;
+				}
+				command = input.trim();
+				if (command.isEmpty()) {
+					continue;
+				}
 			}
 			catch (IOException io) {
 				System.err.println((char)27 + "[31;1mClient exception: " + (char)27 + "[0m" + io.getLocalizedMessage());
@@ -129,7 +136,7 @@ public abstract class Client
 				System.out.println("-Number of Rooms: " + arguments.elementAt(2));
 				System.out.println("-Room Price: " + arguments.elementAt(3));
 
-	       			String location = arguments.elementAt(1);
+				String location = arguments.elementAt(1);
 				int numRooms = toInt(arguments.elementAt(2));
 				int price = toInt(arguments.elementAt(3));
 
@@ -215,7 +222,7 @@ public abstract class Client
 
 				System.out.println("Deleting a customer from the database");
 				System.out.println("-Customer ID: " + arguments.elementAt(1));
-				
+
 				int customerID = toInt(arguments.elementAt(1));
 
 				if (m_resourceManager.deleteCustomer(customerID)) {
@@ -230,7 +237,7 @@ public abstract class Client
 
 				System.out.println("Querying a flight");
 				System.out.println("-Flight Number: " + arguments.elementAt(1));
-				
+
 				int flightNum = toInt(arguments.elementAt(1));
 
 				int seats = m_resourceManager.queryFlight(flightNum);
@@ -242,7 +249,7 @@ public abstract class Client
 
 				System.out.println("Querying cars location");
 				System.out.println("-Car Location: " + arguments.elementAt(1));
-				
+
 				String location = arguments.elementAt(1);
 
 				int numCars = m_resourceManager.queryCars(location);
@@ -254,8 +261,8 @@ public abstract class Client
 
 				System.out.println("Querying rooms location");
 				System.out.println("-Room Location: " + arguments.elementAt(1));
-				
-			
+
+
 				String location = arguments.elementAt(1);
 
 				int numRoom = m_resourceManager.queryRooms(location);
@@ -272,11 +279,11 @@ public abstract class Client
 
 				String bill = m_resourceManager.queryCustomerInfo(customerID);
 				System.out.print(bill);
-				break;               
+				break;
 			}
 			case QueryFlightPrice: {
 				checkArgumentsCount(2, arguments.size());
-				
+
 				System.out.println("Querying a flight price");
 				System.out.println("-Flight Number: " + arguments.elementAt(1));
 
@@ -350,7 +357,7 @@ public abstract class Client
 				System.out.println("Reserving a room at a location");
 				System.out.println("-Customer ID: " + arguments.elementAt(1));
 				System.out.println("-Room Location: " + arguments.elementAt(2));
-				
+
 				int customerID = toInt(arguments.elementAt(1));
 				String location = arguments.elementAt(2);
 

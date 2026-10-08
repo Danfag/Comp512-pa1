@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Arrays;
-import java.util.Vector;
 
 public class ServerRunner implements Runnable {
 
@@ -139,7 +137,8 @@ public class ServerRunner implements Runnable {
                             break;
 
                         case "RESERVE_FLIGHT":
-                            boolean resFlightRes = resourceManager.reserveFlight(
+                            boolean resFlightRes =
+                                    resourceManager.reserveFlight(
                                     Integer.parseInt(tokens[1]),
                                     Integer.parseInt(tokens[2])
                             );
@@ -162,6 +161,22 @@ public class ServerRunner implements Runnable {
                             response = Boolean.toString(resRoomRes);
                             break;
 
+                        case "RESERVE_FLIGHT_CUSTOMER":
+                            boolean resCusFlightRes =
+                                    resourceManager.reserveFlightForCustomer(Integer.parseInt(tokens[1]), Integer.parseInt(tokens[2]), Integer.parseInt(tokens[3]));
+                            response = Boolean.toString(resCusFlightRes);
+                            break;
+                        case "RESERVE_CAR_CUSTOMER":
+                            boolean resCusCarRes =
+                                    resourceManager.reserveCarForCustomer(Integer.parseInt(tokens[1]), tokens[2], Integer.parseInt(tokens[3]));
+                            response = Boolean.toString(resCusCarRes);
+                            break;
+                        case "RESERVE_ROOM_CUSTOMER":
+                            boolean resCusRoomRes =
+                                    resourceManager.reserveRoomForCustomer(Integer.parseInt(tokens[1]), tokens[2], Integer.parseInt(tokens[3]));
+                            response = Boolean.toString(resCusRoomRes);
+                            break;
+
                         case "GET_NAME":
                             response = resourceManager.getName();
                             break;
@@ -173,7 +188,13 @@ public class ServerRunner implements Runnable {
                     response = "ERROR: " + e.getMessage();
                 }
 
-                out.println(response);
+                if (command.equals("QUERY_CUSTOMER")) {
+                    out.println(response.length());
+                    out.print(response);
+                    out.flush();
+                } else {
+                    out.println(response);
+                }
             }
         } catch (IOException e) {
             System.err.println("Error while reading stream: " + e.getMessage());
