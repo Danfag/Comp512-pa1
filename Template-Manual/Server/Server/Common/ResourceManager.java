@@ -247,6 +247,26 @@ public class ResourceManager implements IResourceManager
 		}
 	}
 
+	public String getCustomerReservations(int customerID) throws RemoteException
+	{
+		synchronized (m_data) {
+			Customer customer = (Customer)readData(Customer.getKey(customerID));
+			if (customer == null) {
+				return null;
+			}
+
+			StringBuilder reservations = new StringBuilder();
+			for (String key : customer.getReservations().keySet()) {
+				ReservedItem item = customer.getReservedItem(key);
+				reservations.append(item.getReservableItemKey())
+						.append('\t')
+						.append(item.getCount())
+						.append('\n');
+			}
+			return reservations.toString();
+		}
+	}
+
 	public int newCustomer() throws RemoteException
 	{
         	Trace.info("RM::newCustomer() called");
@@ -290,6 +310,9 @@ public class ResourceManager implements IResourceManager
 					ReservedItem reserveditem = customer.getReservedItem(reservedKey);
 					Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " " + reserveditem.getCount() + " times");
 					ReservableItem item = (ReservableItem) readData(reserveditem.getKey());
+					if (item == null) {
+						continue;
+					}
 					Trace.info("RM::deleteCustomer(" + customerID + ") has reserved " + reserveditem.getKey() + " which is reserved " + item.getReserved() + " times and is still available " + item.getCount() + " times");
 					item.setReserved(item.getReserved() - reserveditem.getCount());
 					item.setCount(item.getCount() + reserveditem.getCount());
@@ -324,6 +347,37 @@ public class ResourceManager implements IResourceManager
 				return true;
 			}
 		}
+	}
+
+	private boolean releaseResource(String key, int count) {
+		if (count <= 0) {
+			return false;
+		}
+		synchronized (m_data) {
+			ReservableItem item = (ReservableItem)readData(key);
+			if (item == null || item.getReserved() < count) {
+				return false;
+			}
+			item.setReserved(item.getReserved() - count);
+			item.setCount(item.getCount() + count);
+			writeData(item.getKey(), item);
+			return true;
+		}
+	}
+
+	public boolean releaseFlight(int flightNumber, int count) throws RemoteException
+	{
+		return releaseResource(Flight.getKey(flightNumber), count);
+	}
+
+	public boolean releaseCar(String location, int count) throws RemoteException
+	{
+		return releaseResource(Car.getKey(location), count);
+	}
+
+	public boolean releaseRoom(String location, int count) throws RemoteException
+	{
+		return releaseResource(Room.getKey(location), count);
 	}
 
 	// Adds flight reservation to this customer

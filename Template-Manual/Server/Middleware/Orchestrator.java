@@ -101,6 +101,89 @@ public class Orchestrator {
         return true;
     }
 
+    public boolean deleteCustomer(int customerID) throws RemoteException {
+        synchronized (Middleware.getCustomerRM()) {
+            synchronized (Middleware.getFlightRM()) {
+                synchronized (Middleware.getCarRM()) {
+                    synchronized (Middleware.getRoomRM()) {
+                        String reservationRecords =
+                                Middleware.getCustomerRM()
+                                        .getCustomerReservations(customerID);
+                        if (reservationRecords == null) {
+                            return false;
+                        }
+
+                        Map<String, Integer> reservations = new HashMap<>();
+                        try {
+                            for (String line : reservationRecords.split("\\r?\\n")) {
+                                if (line.isEmpty()) {
+                                    continue;
+                                }
+                                String[] fields = line.split("\\t", 2);
+                                if (fields.length != 2) {
+                                    throw new RemoteException(
+                                            "Invalid customer reservation record: " + line);
+                                }
+                                int count = Integer.parseInt(fields[1]);
+                                if (count <= 0) {
+                                    throw new RemoteException(
+                                            "Invalid reservation count: " + line);
+                                }
+                                reservations.merge(fields[0].toLowerCase(), count,
+                                        Integer::sum);
+                            }
+                        } catch (NumberFormatException e) {
+                            throw new RemoteException(
+                                    "Invalid customer reservation records", e);
+                        }
+
+                        for (Map.Entry<String, Integer> reservation :
+                                reservations.entrySet()) {
+                            String[] keyParts = reservation.getKey().split("-", 2);
+                            if (keyParts.length != 2 || keyParts[1].isEmpty()) {
+                                throw new RemoteException(
+                                        "Invalid reservation key: " + reservation.getKey());
+                            }
+
+                            boolean released;
+                            switch (keyParts[0]) {
+                                case "flight":
+                                    int flightNumber;
+                                    try {
+                                        flightNumber = Integer.parseInt(keyParts[1]);
+                                    } catch (NumberFormatException e) {
+                                        throw new RemoteException(
+                                                "Invalid flight reservation key: "
+                                                        + reservation.getKey(), e);
+                                    }
+                                    released = Middleware.getFlightRM().releaseFlight(
+                                            flightNumber, reservation.getValue());
+                                    break;
+                                case "car":
+                                    released = Middleware.getCarRM().releaseCar(
+                                            keyParts[1], reservation.getValue());
+                                    break;
+                                case "room":
+                                    released = Middleware.getRoomRM().releaseRoom(
+                                            keyParts[1], reservation.getValue());
+                                    break;
+                                default:
+                                    throw new RemoteException(
+                                            "Unknown reservation type: " + keyParts[0]);
+                            }
+
+                            if (!released) {
+                                return false;
+                            }
+                        }
+
+                        return Middleware.getCustomerRM().deleteCustomer(customerID);
+                    }
+                }
+            }
+        }
+    }
+
     public boolean bundle(int customerID, Vector<String> flightNumbers,
                                        String location, boolean car, boolean room)
             throws RemoteException

@@ -114,6 +114,23 @@ public interface IResourceManager extends Remote
 	throws RemoteException; 
 
     /**
+     * Return a customer's reservations as one resource-key/count pair per line.
+     *
+     * @return Reservation records, or null if the customer does not exist
+     */
+    public String getCustomerReservations(int customerID)
+	throws RemoteException;
+
+    public boolean releaseFlight(int flightNumber, int count)
+	throws RemoteException;
+
+    public boolean releaseCar(String location, int count)
+	throws RemoteException;
+
+    public boolean releaseRoom(String location, int count)
+	throws RemoteException;
+
+    /**
      * Query the status of a flight.
      *
      * @return Number of empty seats

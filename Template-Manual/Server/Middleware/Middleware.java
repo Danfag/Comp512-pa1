@@ -159,15 +159,33 @@ public abstract class Middleware implements IResourceManager {
 
     public boolean deleteCustomer(int customerID)
             throws RemoteException {
-        synchronized (customerRM) {
-            return getCustomerRM().deleteCustomer(customerID);
-        }
+        return getOrchestratorRM().deleteCustomer(customerID);
     }
 
     public String queryCustomerInfo(int customerID)
             throws RemoteException {
         return getCustomerRM().queryCustomerInfo(customerID);
     };
+
+    @Override
+    public String getCustomerReservations(int customerID) throws RemoteException {
+        return getCustomerRM().getCustomerReservations(customerID);
+    }
+
+    @Override
+    public boolean releaseFlight(int flightNumber, int count) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
+    }
+
+    @Override
+    public boolean releaseCar(String location, int count) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
+    }
+
+    @Override
+    public boolean releaseRoom(String location, int count) throws RemoteException {
+        throw new RemoteException("This method should not be called by client");
+    }
 
     // Orchestrator RM methods
     @Override
