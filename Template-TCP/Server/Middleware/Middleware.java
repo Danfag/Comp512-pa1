@@ -128,7 +128,9 @@ public abstract class Middleware {
     public String customerRedirectionWithoutSynchro(String request) throws IOException
     {
         getCustomerStreams().to_resource.println(request);
-        if (request.split(",", 2)[0].trim().equalsIgnoreCase("QUERY_CUSTOMER")) {
+        String command = request.split(",", 2)[0].trim();
+        if (command.equalsIgnoreCase("QUERY_CUSTOMER")
+                || command.equalsIgnoreCase("GET_CUSTOMER_RESERVATIONS")) {
             return readTerminatedResponse(getCustomerStreams().from_resource);
         }
         return getCustomerStreams().from_resource.readLine();

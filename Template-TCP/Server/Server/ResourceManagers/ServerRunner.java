@@ -120,6 +120,14 @@ public class ServerRunner implements Runnable {
                             response = qCustRes != null ? qCustRes : "";
                             break;
 
+                        case "GET_CUSTOMER_RESERVATIONS":
+                            String reservations = resourceManager.getCustomerReservations(
+                                    Integer.parseInt(tokens[1]));
+                            response = reservations == null
+                                    ? "NOT_FOUND"
+                                    : reservations;
+                            break;
+
                         case "QUERY_FLIGHT_PRICE":
                             int qFlightPriceRes = resourceManager.queryFlightPrice(
                                     Integer.parseInt(tokens[1])
@@ -207,7 +215,8 @@ public class ServerRunner implements Runnable {
                     response = "ERROR: " + e.getMessage();
                 }
 
-                if (command.equals("QUERY_CUSTOMER")) {
+                if (command.equals("QUERY_CUSTOMER")
+                        || command.equals("GET_CUSTOMER_RESERVATIONS")) {
                     out.print(response);
                     out.print(RESPONSE_TERMINATOR);
                     out.flush();

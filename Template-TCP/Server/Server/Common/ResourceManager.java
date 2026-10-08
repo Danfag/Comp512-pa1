@@ -246,6 +246,26 @@ public class ResourceManager implements IResourceManager
 		}
 	}
 
+	public String getCustomerReservations(int customerID) throws RemoteException
+	{
+		synchronized (m_data) {
+			Customer customer = (Customer)readData(Customer.getKey(customerID));
+			if (customer == null) {
+				return null;
+			}
+
+			StringBuilder reservations = new StringBuilder();
+			for (String key : customer.getReservations().keySet()) {
+				ReservedItem item = customer.getReservedItem(key);
+				reservations.append(item.getReservableItemKey())
+						.append('\t')
+						.append(item.getCount())
+						.append('\n');
+			}
+			return reservations.toString();
+		}
+	}
+
 	public int newCustomer() throws RemoteException
 	{
 		Trace.info("RM::newCustomer() called");

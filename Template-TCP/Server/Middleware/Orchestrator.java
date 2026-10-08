@@ -146,33 +146,33 @@ public class Orchestrator {
             synchronized (middleware.getFlightStreams()) {
                 synchronized (middleware.getCarStreams()) {
                     synchronized (middleware.getRoomStreams()) {
-                        String request = String.join(",", "QUERY_CUSTOMER",
+                        String request = String.join(",", "GET_CUSTOMER_RESERVATIONS",
                                 String.valueOf(customerID));
-                        String bill =
+                        String reservationsResponse =
                                 middleware.customerRedirectionWithoutSynchro(request);
-                        if (bill.isEmpty()) {
+                        if ("NOT_FOUND".equals(reservationsResponse)) {
                             return false;
                         }
 
                         Map<String, Integer> reservations = new HashMap<>();
-                        String[] lines = bill.split("\\r?\\n");
+                        String[] lines = reservationsResponse.split("\\r?\\n");
                         try {
-                            for (int i = 1; i < lines.length; i++) {
-                                String line = lines[i].trim();
+                            for (String reservationLine : lines) {
+                                String line = reservationLine.trim();
                                 if (line.isEmpty()) {
                                     continue;
                                 }
-                                String[] fields = line.split("\\s+");
+                                String[] fields = line.split("\\t", 2);
                                 if (fields.length < 2) {
                                     throw new IOException(
                                             "Invalid customer reservation line: " + line);
                                 }
-                                int count = Integer.parseInt(fields[0]);
+                                int count = Integer.parseInt(fields[1]);
                                 if (count <= 0) {
                                     throw new IOException(
                                             "Invalid reservation count in line: " + line);
                                 }
-                                reservations.merge(fields[1].toLowerCase(), count,
+                                reservations.merge(fields[0].toLowerCase(), count,
                                         Integer::sum);
                             }
                         } catch (NumberFormatException e) {

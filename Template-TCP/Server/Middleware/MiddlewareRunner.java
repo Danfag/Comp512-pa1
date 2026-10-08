@@ -191,7 +191,8 @@ public class MiddlewareRunner extends Middleware implements Runnable{
                         finalResponse = "ERROR: Unknown command " + command;
                 }
 
-                if (command.equals("QUERY_CUSTOMER")) {
+                if (command.equals("QUERY_CUSTOMER")
+                        || command.equals("GET_CUSTOMER_RESERVATIONS")) {
                     to_client.print(finalResponse);
                     to_client.print(RESPONSE_TERMINATOR);
                     to_client.flush();

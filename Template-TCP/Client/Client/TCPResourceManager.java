@@ -196,6 +196,10 @@ public class TCPResourceManager implements IResourceManager  {
         }
     }
 
+    public String getCustomerReservations(int customerID) throws RemoteException {
+        throw new RemoteException("Client should not be calling this");
+    }
+
     private String readTerminatedResponse() throws IOException {
         StringBuilder response = new StringBuilder();
         int character;
